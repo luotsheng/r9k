@@ -171,6 +171,8 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                                 argparse_free(ap);
                                 return NULL;
                         }
+
+                        continue;
                 }
 
                 optid = optfind(ap, argv[i]);
@@ -267,7 +269,7 @@ const char *argparse_arg(argparse_t *ap)
         return ap->arg;
 }
 
-const char *argparse_error()
+const char *argparse_error(void)
 {
         return error_buf;
 }
