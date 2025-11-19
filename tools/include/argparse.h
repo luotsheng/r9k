@@ -24,5 +24,8 @@ typedef struct argparse argparse_t;
 
 argparse_t *argparse_parse(const struct option *opts, int argc, char **argv);
 void argparse_free(struct argparse *ap);
+int argparse_has(argparse_t *ap, const char *name);
+const char **argparse_vals(argparse_t *ap, const char *name, size_t *nval);
+const char *argparse_val(argparse_t *ap, const char *name);
 
 #endif /* ARGPARSE_H_ */

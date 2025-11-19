@@ -21,6 +21,16 @@ struct argparse
         size_t nent;
 };
 
+static const struct optent *entfind(argparse_t *ap, const char *optname)
+{
+        for (size_t i = 0; i < ap->nent; i++) {
+                if (strcmp(ap->ents[i].opt->long_name, optname) == 0)
+                        return &ap->ents[i];
+        }
+
+        return NULL;
+}
+
 static size_t optcount(const struct option *opts)
 {
         size_t n = 0;
@@ -89,7 +99,7 @@ static void addval(argparse_t *ap, size_t optid, const char *val)
 
         fo->seen++;
 
-        if (val && op->has_arg == required_argument) {
+        if (val) {
                 char **tmp = realloc(fo->vals, sizeof(*tmp) * (fo->nval + 1));
                 if (!tmp)
                         return;
@@ -118,8 +128,8 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                 op = &ap->opts[optid];
 
                 char *val = NULL;
-                if (op->has_arg == required_argument
-                        || op->has_arg == optional_argument) {
+                if ((op->has_arg == required_argument || op->has_arg == optional_argument)
+                        && argv[i + 1][0] != '-') {
                         val = argv[i + 1];
                         ++i;
                 }
@@ -148,4 +158,34 @@ void argparse_free(struct argparse *ap)
 
         free(ap->ents);
         free(ap);
+}
+
+int argparse_has(argparse_t *ap, const char *name)
+{
+        return entfind(ap, name) ? 1 : 0;
+}
+
+const char **argparse_vals(argparse_t *ap, const char *name, size_t *nval)
+{
+        const struct optent *ent;
+
+        ent = entfind(ap, name);
+        if (!ent)
+                return NULL;
+
+        if (nval)
+                *nval = ent->nval;
+
+        return ent->vals;
+}
+
+const char *argparse_val(argparse_t *ap, const char *name)
+{
+        const char **vals;
+
+        vals = argparse_vals(ap, name, NULL);
+        if (!vals)
+                return NULL;
+
+        return vals[0];
 }

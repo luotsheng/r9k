@@ -13,9 +13,10 @@ static struct option options[] = {
 
 int main(int argc, char **argv)
 {
-        argparse_t *parser;
+        argparse_t *ap;
+        ap = argparse_parse(options, argc, argv);
 
-        parser = argparse_parse(options, argc, argv);
+        argparse_free(ap);
 
         return 0;
 }
