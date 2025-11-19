@@ -27,5 +27,7 @@ void argparse_free(struct argparse *ap);
 int argparse_has(argparse_t *ap, const char *name);
 const char **argparse_vals(argparse_t *ap, const char *name, size_t *nval);
 const char *argparse_val(argparse_t *ap, const char *name);
+const char *argparse_arg(argparse_t *ap);
+const char *argparse_error();
 
 #endif /* ARGPARSE_H_ */

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+const char *error = "Undefined error";
+
 struct optent
 {
         const struct option *opt;
@@ -19,6 +21,7 @@ struct argparse
         size_t nopt;
         struct optent *ents;
         size_t nent;
+        char *arg; /* non option */
 };
 
 static const struct optent *entfind(argparse_t *ap, const char *optname)
@@ -118,8 +121,19 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
         ap = calloc(1, sizeof(*ap));
         ap->opts = opts;
         ap->nopt = optcount(opts);
+        ap->arg = NULL;
 
         for (int i = 1; i < argc; i++) {
+                if (argv[i][0] != '-') {
+                        if (ap->arg) {
+                                error = "too many arguments";
+                                argparse_free(ap);
+                                return NULL;
+                        }
+
+                        ap->arg = strdup(argv[i]);
+                }
+
                 optid = optfind(ap, argv[i]);
 
                 if (optid == -1)
@@ -146,6 +160,9 @@ void argparse_free(struct argparse *ap)
 
         if (!ap)
                 return;
+
+        if (ap->arg)
+                free(ap->arg);
 
         for (size_t i = 0; i < ap->nent; i++) {
                 op = &ap->ents[i];
@@ -188,4 +205,14 @@ const char *argparse_val(argparse_t *ap, const char *name)
                 return NULL;
 
         return vals[0];
+}
+
+const char *argparse_arg(argparse_t *ap)
+{
+        return ap->arg;
+}
+
+const char *argparse_error()
+{
+        return error;
 }
