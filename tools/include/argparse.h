@@ -1,4 +1,8 @@
-/* argparse.h: Created by Ekko on 2025/11/19 */
+/*
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2025 viakko
+ * argparse - Command line argument parsing library
+ */
 #ifndef ARGPARSE_H_
 #define ARGPARSE_H_
 

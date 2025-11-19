@@ -1,6 +1,8 @@
-//
-// Created by Ekko on 2025/11/19.
-//
+/*
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2025 viakko
+ * argparse - Command line argument parsing library
+ */
 #include <argparse.h>
 #include <stdio.h>
 #include <string.h>

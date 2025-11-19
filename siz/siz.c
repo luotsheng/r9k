@@ -1,17 +1,23 @@
-/* len.c: Created by Ekko on 2025/11/18 */
+/*
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2025 viakko
+ * siz - A command-line tool for calculation file sizes and string lengths
+ *
+ * Supports file size calculation (with human-readable output)
+ * and string length counting (both byte length and UTF-8 character count)
+ */
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <argparse.h>
 
-#define NSZ_VERSION "1.0.0"
+#define SIZ_VERSION "1.0.0"
 
 static struct option options[] = {
         { 'v', "version", no_argument, opt_single, "版本号" },
         { 'u', "utf8", no_argument, opt_single, "按字符计算" },
-        { '?', "unh", no_argument, opt_single, "关闭以人类可读单位显示大小" },
+        { 'r', "raw", no_argument, opt_single, "关闭以人类可读单位显示大小" },
         { 'f', "file", no_argument, opt_single, "计算文件大小" },
-        { 'a', "aval", required_argument, opt_multi, "计算文件大小" },
         { 0 },
 };
 
@@ -74,7 +80,7 @@ int main(int argc, char **argv)
         }
 
         if (argparse_has(ap, "version")) {
-                printf("siz version: %s\n", NSZ_VERSION);
+                printf("siz version: %s\n", SIZ_VERSION);
                 exit(0);
         }
 
