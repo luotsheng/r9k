@@ -122,7 +122,7 @@ static int addval(argparse_t *ap, size_t optid, const char *val)
                 }
         }
 
-        if (ent != NULL && val != NULL && op->multi != opt_multi) {
+        if (ent != NULL && val != NULL && !(op->flags & opt_multi)) {
                 seterror("option: --%s too many argument, unsupported multi args", op->long_name);
                 return -1;
         }
@@ -214,13 +214,13 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                 char *val = NULL;
                 int next = i + 1;
                 if (next < argc) {
-                        if ((op->has_arg == required_argument) && argv[next][0] != '-') {
+                        if ((op->flags & required_argument) && argv[next][0] != '-') {
                                 val = argv[i + 1];
                                 ++i;
                         }
                 }
 
-                if (op->has_arg == required_argument && !val) {
+                if (op->flags & required_argument && !val) {
                         seterror("option: <--%s> required argument", op->long_name);
                         argparse_free(ap);
                         return NULL;

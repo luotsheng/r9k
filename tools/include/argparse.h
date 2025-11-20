@@ -12,18 +12,15 @@
 
 #include <stdlib.h>
 
-#define no_argument       (0)
-#define required_argument (1)
-
-#define opt_single        (0)
-#define opt_multi         (1)
+#define required_argument (1 << 1)
+#define opt_multi         (1 << 2)
+#define allow_group       (1 << 3)
 
 struct option
 {
         int short_name;
         const char *long_name;
-        unsigned int has_arg;
-        unsigned int multi;
+        unsigned int flags;
         const char *description;
 };
 

@@ -15,10 +15,10 @@
 #define SIZ_VERSION "1.0.0"
 
 static struct option options[] = {
-        { 'v', "version", no_argument, opt_single, "版本号" },
-        { 'u', "utf8", no_argument, opt_single, "按字符计算" },
-        { '?', "rqw", no_argument, opt_single, "以字节数显示" },
-        { 'f', "file", no_argument, opt_single, "计算文件大小" },
+        { 'v', "version", 0, "版本号" },
+        { 'u', "utf8", 0, "按字符计算" },
+        { '?', "raw", 0, "以字节数显示" },
+        { 'f', "file", 0, "计算文件大小" },
         { 0 },
 };
 
@@ -71,7 +71,7 @@ static double human_size(size_t size, const char **unit)
 
 int main(int argc, char **argv)
 {
-
+        const char *arg;
         argparse_t *ap;
         ap = argparse_parse(options, argc, argv);
 
@@ -85,10 +85,16 @@ int main(int argc, char **argv)
                 exit(0);
         }
 
+        arg = argparse_arg(ap);
+        if (!arg) {
+                fprintf(stderr, "siz error: invalid argument\n");
+                exit(1);
+        }
+
         if (argparse_has(ap, "file")) {
                 double hsize;
                 const char *unit;
-                ssize_t size = filesize(argparse_arg(ap));
+                ssize_t size = filesize(arg);
 
                 if (size == -1) {
                         fprintf(stderr, "siz error: %s\n", strerror(errno));
@@ -107,11 +113,11 @@ int main(int argc, char **argv)
         }
 
         if (argparse_has(ap, "utf8")) {
-                printf("%ld\n", utf8len(argparse_arg(ap)));
+                printf("%ld\n", utf8len(arg));
                 exit(0);
         }
 
-        printf("%ld\n", strlen(argparse_arg(ap)));
+        printf("%ld\n", strlen(arg));
 
         argparse_free(ap);
 
