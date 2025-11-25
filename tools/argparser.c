@@ -222,6 +222,23 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
 
 static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *argv[])
 {
+        char *defval = NULL;
+        struct option *opt;
+
+        char *eq = strchr(tok, '=');
+        if (eq) {
+                defval = eq + 1;
+                *eq = '\0';
+        }
+
+        opt = lookup_long(ap, tok);
+        if (!opt) {
+                error(ap, "Unknown option: --%s", tok);
+                return -EINVAL;
+        }
+
+        take_val(ap, opt, LONG, tok, defval, i, argv);
+
         return 0;
 }
 
