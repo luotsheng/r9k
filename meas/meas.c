@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
         argparser_add0(ap, &help, "h", "help", "show this help message and exit", OP_NULL);
         argparser_add0(ap, &version, "version", "version", "show current version", OP_NULL);
-        argparser_add1(ap, &str, "S", "str", "input string value", OP_NULL | OP_REQVAL);
+        argparser_add1(ap, &str, "s", "str", "input string value", OP_NULL | OP_REQVAL);
         argparser_add0(ap, &unicode, "u", "unicode", "use unicode parse string length", OP_NULL);
 
         if (argparser_run(ap, argc, argv) != 0) {
