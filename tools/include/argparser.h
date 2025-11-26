@@ -1,5 +1,5 @@
 /*
- * SPDX-License-Identifier: MIT
+* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
  *
  * argparse - Lightweight command-line argument parsing library
@@ -9,11 +9,14 @@
  * and single-character options can be grouped.
  *
  * The rules:
- *  - If a long option include 'abc', it gets proirity in processing.
+ *  - If a long option or a short option string includes 'abc', it gets priority
+ *    in processing.
  *  - If 'abc' not found in long option, it will be split into single-character
  *    options for short option matching.
  *  - Supports argument specified with either spaces or equal signs.
  *  - When arguments are specified using spaces, multiple values are supported.
+ *  - If a value starts with '-', you need to use equal sign accept the value.
+ *  - Short option groups not support using the equal sign to accept value.
  */
 #ifndef ARGPARSER_H_
 #define ARGPARSER_H_
