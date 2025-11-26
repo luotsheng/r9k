@@ -154,11 +154,11 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
         return NULL;
 }
 
-static int take_val(struct argparser *ap, struct option *opt, int is_long, char *tok, char *defval, int *i, char *argv[])
+static int take_val(struct argparser *ap, struct option *opt, int is_long, char *tok, char *dval, int *i, char *argv[])
 {
         char *val = NULL;
-        if (defval)
-                val = defval;
+        if (dval)
+                val = dval;
 
         if (opt->_refs)
                 *opt->_refs = opt;
@@ -173,7 +173,7 @@ static int take_val(struct argparser *ap, struct option *opt, int is_long, char 
                         val = argv[*i + 1];
 
                         if (opt->flags & OP_REQVAL && !val) {
-                                error(ap, "option %s%s missing required argument", OPT_PREFIX(is_long), tok);
+                                error(ap, "option %s%s required argument", OPT_PREFIX(is_long), tok);
                                 return -EINVAL;
                         }
 
@@ -189,50 +189,63 @@ static int take_val(struct argparser *ap, struct option *opt, int is_long, char 
         return 0;
 }
 
-static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char *argv[])
+static int __handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
 {
-        int r;
-        char *defval = NULL;
-        int has_val = 0;
+        char *dval = NULL;
         struct option *opt;
         char tmp[2];
         size_t len;
 
         len = strlen(tok);
-
-        /* check OP_CONCAT flag */
+        
         tmp[0] = tok[0];
         tmp[1] = '\0';
         opt = lookup_short_str(ap, tmp);
         if (opt != NULL && (opt->flags & OP_CONCAT)) {
                 if (len > 1)
-                        defval = tok + 1;
+                        dval = tok + 1;
 
-                r = take_val(ap, opt, SHORT, tmp, defval, i, argv);
+                int r = take_val(ap, opt, SHORT, tmp, dval, i, argv);
                 if (r < 0)
                         return r;
 
-                return 0;
+                return 1;
         }
 
-        /* check equal sign */
+        return 0;
+}
+
+static int __handle_short_assign(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
+{
+        char *dval = NULL;
+        struct option *opt;
+
         char *eq = strchr(tok, '=');
         if (eq) {
-                defval = eq + 1;
+                dval = eq + 1;
                 *eq = '\0';
         }
 
         opt = lookup_short_str(ap, tok);
         if (opt != NULL) {
-                r = take_val(ap, opt, SHORT, tok, defval, i, argv);
-                return r < 0 ? r : 0;
+                int r = take_val(ap, opt, SHORT, tok, dval, i, argv);
+                return r < 0 ? r : 1;
 
         }
 
-        if (defval) {
+        if (dval) {
                 error(ap, "unknown option: -%s", tok);
                 return -EINVAL;
         }
+
+        return 0;
+}
+
+static int __handle_short_group(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
+{
+        int has_val = 0;
+        struct option *opt;
+        char tmp[2];
 
         for (int k = 0; tok[k]; k++) {
                 opt = lookup_short_char(ap, tok[k]);
@@ -259,7 +272,7 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
                 tmp[0] = tok[k];
                 tmp[1] = '\0';
 
-                r = take_val(ap, opt, SHORT, tmp, NULL, i, argv);
+                int r = take_val(ap, opt, SHORT, tmp, NULL, i, argv);
                 if (r < 0)
                         return r;
 
@@ -270,16 +283,38 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
         return 0;
 }
 
-
-static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *argv[])
+static int handle_short(struct argparser *ap, int *i, char *tok, char *argv[])
 {
         int r;
-        char *defval = NULL;
+
+        /* check OP_CONCAT flag */
+        r = __handle_short_concat(ap, tok, i, argv);
+        if (r > 0)
+                return 0;
+
+        if (r < 0)
+                return r;
+        
+        /* check equal sign */
+        r = __handle_short_assign(ap, tok, i, argv);
+        if (r > 0)
+                return 0;
+
+        if (r < 0)
+                return r;
+        
+        return __handle_short_group(ap, tok, i, argv);
+}
+
+static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
+{
+        int r;
+        char *dval = NULL;
         struct option *opt;
 
         char *eq = strchr(tok, '=');
         if (eq) {
-                defval = eq + 1;
+                dval = eq + 1;
                 *eq = '\0';
         }
 
@@ -289,7 +324,7 @@ static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *
                 return -EINVAL;
         }
 
-        r = take_val(ap, opt, LONG, tok, defval, i, argv);
+        r = take_val(ap, opt, LONG, tok, dval, i, argv);
         return r < 0 ? r : 0;
 }
 
@@ -391,12 +426,12 @@ int argparser_run(struct argparser *ap, int argc, char *argv[])
 
                 if (tok[1] == '-') {
                         tok += 2;
-                        handle_long(ap, &i, tok, argc, argv);
+                        handle_long(ap, &i, tok, argv);
                         continue;
                 }
 
                 tok++;
-                r = handle_short(ap, &i, tok, argc, argv);
+                r = handle_short(ap, &i, tok, argv);
                 if (r != 0)
                         return r;
         }
