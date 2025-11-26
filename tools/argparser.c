@@ -223,8 +223,11 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
         }
 
         opt = lookup_short_str(ap, tok);
-        if (opt != NULL)
-                return take_val(ap, opt, SHORT, tok, defval, i, argv);
+        if (opt != NULL) {
+                r = take_val(ap, opt, SHORT, tok, defval, i, argv);
+                return r < 0 ? r : 0;
+
+        }
 
         if (defval) {
                 error(ap, "unknown option: -%s", tok);
@@ -265,6 +268,7 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
 
 static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *argv[])
 {
+        int r;
         char *defval = NULL;
         struct option *opt;
 
@@ -280,7 +284,8 @@ static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *
                 return -EINVAL;
         }
 
-        return take_val(ap, opt, LONG, tok, defval, i, argv);
+        r = take_val(ap, opt, LONG, tok, defval, i, argv);
+        return r < 0 ? r : 0;
 }
 
 struct argparser *argparser_create(void)

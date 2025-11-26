@@ -22,6 +22,20 @@
 
 #define MEAS_VERSION "1.0.0"
 
+static size_t strlen_utf8(const char *str)
+{
+        size_t len = 0;
+
+        while (*str) {
+                unsigned char c = (unsigned char) *str;
+                if ((c & 0xC0) != 0x80)
+                        len++;
+                str++;
+        }
+
+        return len;
+}
+
 int main(int argc, char **argv)
 {
         struct argparser *ap;
@@ -51,7 +65,10 @@ int main(int argc, char **argv)
         }
 
         if (str) {
-                printf("%lu\n", strlen(str->sval));
+                size_t len = unicode
+                        ? strlen_utf8(str->sval)
+                        : strlen(str->sval);
+                printf("%lu\n", len);
                 goto end;
         }
 
