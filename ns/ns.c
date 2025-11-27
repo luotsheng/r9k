@@ -10,7 +10,7 @@
 #include <resolv.h>
 #include <arpa/inet.h>
 #include <argparser.h>
-#include <fx/ioutils.h>
+#include <fx/typedefs.h>
 
 /* --flushdns */
 static void handle_flushdns()
@@ -61,12 +61,15 @@ static void show_dns_list()
 
 static void show_resolv_conf()
 {
-        char *buf = freadbuf("/etc/resolv.conf");
-        if (!buf)
-                exit(1);
+        FILE *fp = fopen("/etc/resolv.conf", "r");
+        if (!fp)
+                die("Cannot open /etc/resolv.conf");
 
-        printf("%s", buf);
-        free(buf);
+        char buf[4096];
+        while (fgets(buf, sizeof(buf), fp))
+                printf("%s\n", buf);
+
+        fclose(fp);
 }
 
 int main(int argc, char **argv)
