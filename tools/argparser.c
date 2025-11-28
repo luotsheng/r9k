@@ -126,8 +126,14 @@ static int try_take_val(struct argparser *ap, struct option *opt, int is_long, c
         if (opt->_refs)
                 *opt->_refs = opt;
 
-        if (opt->max <= 0)
+        if (opt->max <= 0) {
+                if (opt->flags & OPT_REQVAL) {
+                        error(ap, "option %s%s flag need requires a value, but max capacity is zero",
+                              OPT_PREFIX(is_long), tok);
+                        return -EINVAL;
+                }
                 return 0;
+        }
 
         /* equal sign value */
         if (eqval) {
