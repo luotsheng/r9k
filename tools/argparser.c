@@ -501,5 +501,6 @@ const char *argparser_help(struct argparser *ap)
                 n += snprintf(ap->help + n, sizeof(ap->help) - n, "\n");
         }
 
+        ap->help[n - 1] = '\0';
         return ap->help;
 }
