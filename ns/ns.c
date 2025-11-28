@@ -119,12 +119,12 @@ int main(int argc, char **argv)
         if (!ap)
                 return -1;
 
-        argparser_add1(ap, &opt_verbose, "v", "verbose", "show more information", OPT_NONE);
-        argparser_add1(ap, &opt_dns, "dns", NULL, "show resolv DNS address and exit", OPT_NONE);
-        argparser_add0(ap, &opt_resolv, "resolv", NULL, "show resolv.conf and exit", OPT_NONE);
-        argparser_add0(ap, &opt_flush_dns, NULL, "flushdns", "flush system DNS cache and exit", OPT_NONE);
-        argparser_add0(ap, &opt_iface, "i", "interface", "list interface address", OPT_NONE);
-        argparser_add0(ap, &opt_help, "h", "help", "show this help message and exit", OPT_NONE);
+        argparser_add1(ap, &opt_verbose, "v", "verbose", "show more information", opt_none);
+        argparser_add1(ap, &opt_dns, "dns", NULL, "show resolv DNS address and exit", opt_none);
+        argparser_add0(ap, &opt_resolv, "resolv", NULL, "show resolv.conf and exit", opt_none);
+        argparser_add0(ap, &opt_flush_dns, NULL, "flushdns", "flush system DNS cache and exit", opt_none);
+        argparser_add0(ap, &opt_iface, "i", "interface", "list interface address", opt_none);
+        argparser_add0(ap, &opt_help, "h", "help", "show this help message and exit", opt_none);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));

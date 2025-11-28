@@ -49,10 +49,10 @@ int main(int argc, char **argv)
                 exit(1);
         }
 
-        argparser_add0(ap, &help, "h", "help", "show this help message and exit", OPT_NONE);
-        argparser_add0(ap, &version, "version", NULL, "show current version", OPT_NONE);
-        argparser_add0(ap, &str, "s", "str", "as string type", OPT_NONE);
-        argparser_add0(ap, &unicode, "u", "unicode", "use unicode parse string length", OPT_NONE);
+        argparser_add0(ap, &help, "h", "help", "show this help message and exit", opt_none);
+        argparser_add0(ap, &version, "version", NULL, "show current version", opt_none);
+        argparser_add0(ap, &str, "s", "str", "as string type", opt_none);
+        argparser_add0(ap, &unicode, "u", "unicode", "use unicode parse string length", opt_none);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));

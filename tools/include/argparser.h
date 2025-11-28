@@ -23,10 +23,10 @@
 
 #include <stdint.h>
 
-#define OPT_NONE   (0)
-#define OPT_REQVAL (1 << 0) /* required value */
-#define OPT_CONCAT (1 << 1) /* -O1 -O2 */
-#define OPT_NOGRP  (1 << 2) /* not allow group */
+#define opt_none    (0)
+#define opt_reqval  (1 << 0) /* required value */
+#define opt_concat  (1 << 1) /* -O1 -O2 */
+#define opt_nogroup (1 << 2) /* not allow group */
 
 struct option
 {

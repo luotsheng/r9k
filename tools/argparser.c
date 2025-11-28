@@ -127,7 +127,7 @@ static int try_take_val(struct argparser *ap, struct option *opt, int is_long, c
                 *opt->_refs = opt;
 
         if (opt->max <= 0) {
-                if (opt->flags & OPT_REQVAL) {
+                if (opt->flags & opt_reqval) {
                         error(ap, "option %s%s flag need requires a value, but max capacity is zero",
                               OPT_PREFIX(is_long), tok);
                         return -EINVAL;
@@ -145,7 +145,7 @@ static int try_take_val(struct argparser *ap, struct option *opt, int is_long, c
                 char *val = argv[*i + 1];
 
                 if (!val || val[0] == '-') {
-                        if ((opt->flags & OPT_REQVAL) && opt->count == 0) {
+                        if ((opt->flags & opt_reqval) && opt->count == 0) {
                                 error(ap, "option %s%s missing required argument", OPT_PREFIX(is_long), tok);
                                 return -EINVAL;
                         }
@@ -212,7 +212,7 @@ static int __handle_short_concat(struct argparser *ap, char *tok, int *i, char *
         tmp[0] = tok[0];
         tmp[1] = '\0';
         opt = lookup_short_str(ap, tmp);
-        if (opt != NULL && (opt->flags & OPT_CONCAT)) {
+        if (opt != NULL && (opt->flags & opt_concat)) {
                 if (len > 1)
                         eqval = tok + 1;
 
@@ -266,12 +266,12 @@ static int __handle_short_group(struct argparser *ap, char *tok, int *i, char *a
                         return -EINVAL;
                 }
 
-                if (opt->flags & OPT_CONCAT) {
+                if (opt->flags & opt_concat) {
                         error(ap, "invalid option -%c cannot be in a group", tok[k]);
                         return -EINVAL;
                 }
 
-                if (opt->flags & OPT_NOGRP) {
+                if (opt->flags & opt_nogroup) {
                         error(ap, "option -%c cannot be used as a group", tok[k]);
                         return -EINVAL;
                 }
@@ -301,7 +301,7 @@ static int handle_short(struct argparser *ap, int *i, char *tok, char *argv[])
 {
         int r;
 
-        /* check OPT_CONCAT flag */
+        /* check opt_concat flag */
         r = __handle_short_concat(ap, tok, i, argv);
         if (r > 0)
                 return 0;
