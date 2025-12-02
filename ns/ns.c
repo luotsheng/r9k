@@ -15,8 +15,9 @@
 #include <ifaddrs.h>
 #include <errno.h>
 #include <argparser.h>
-#include <sys/ioctl.h>
 #include <fx/typedefs.h>
+
+#define NS_VERSION "1.0"
 
 /* --flushdns */
 static int on_flush(struct argparser *ap, struct option *opt)
@@ -108,34 +109,30 @@ static int on_iface(struct argparser *ap, struct option *opt)
 int main(int argc, char **argv)
 {
         struct argparser *ap;
-        struct option *opt_dns;
-        struct option *opt_resolv;
-        struct option *opt_flush_dns;
-        struct option *opt_iface;
-        struct option *opt_verbose;
-        struct option *opt_help;
+        struct option *help;
+        struct option *version;
+        struct option *dns;
+        struct option *resolv;
+        struct option *flush_dns;
+        struct option *iface;
+        struct option *verbose;
 
-        ap = argparser_create("ns");
+        ap = argparser_create("ns", NS_VERSION);
         if (!ap)
                 return -1;
 
-        argparser_add1(ap, &opt_verbose, "v", "verbose", "show more information", NULL, opt_none);
-        argparser_add1(ap, &opt_dns, "dns", NULL, "show resolv DNS address and exit", on_dns, opt_none);
-        argparser_add0(ap, &opt_resolv, "resolv", NULL, "show resolv.conf and exit", on_resolv, opt_none);
-        argparser_add0(ap, &opt_flush_dns, NULL, "flushdns", "flush system DNS cache and exit", on_flush, opt_none);
-        argparser_add0(ap, &opt_iface, "i", "interface", "list interface address", on_iface, opt_none);
-        argparser_add0(ap, &opt_help, "h", "help", "show this help message and exit", NULL, opt_none);
+        argparser_add0(ap, &help, "h", "help", "show this help message and exit", __acb_help, opt_none);
+        argparser_add0(ap, &version, "version", "version", "show version", __acb_version, opt_none);
+        argparser_add1(ap, &verbose, "v", "verbose", "show more information", NULL, opt_none);
+        argparser_add1(ap, &dns, "dns", NULL, "show resolv DNS address and exit", on_dns, opt_none);
+        argparser_add0(ap, &resolv, "resolv", NULL, "show resolv.conf and exit", on_resolv, opt_none);
+        argparser_add0(ap, &flush_dns, NULL, "flushdns", "flush system DNS cache and exit", on_flush, opt_none);
+        argparser_add0(ap, &iface, "i", "interface", "list interface address", on_iface, opt_none);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));
                 argparser_free(ap);
                 return -1;
-        }
-
-        if (opt_help) {
-                printf("%s", argparser_help(ap));
-                argparser_free(ap);
-                exit(0);
         }
 
         return 0;

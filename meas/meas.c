@@ -10,7 +10,7 @@
 #include <string.h>
 #include <fx/typedefs.h>
 
-#define MEAS_VERSION "1.0.0"
+#define MEAS_VERSION "1.0"
 
 static size_t __strlen_utf8(const char *str) // NOLINT(*-reserved-identifier)
 {
@@ -35,18 +35,6 @@ static size_t length(const char *str, bool is_unicode)
         return is_unicode ? __strlen_utf8(str) : strlen(str);
 }
 
-static int on_help(struct argparser *ap, struct option *opt)
-{
-        printf("%s\n", argparser_help(ap));
-        exit(0);
-}
-
-static int on_version(struct argparser *ap, struct option *opt)
-{
-        printf("meas %s\n", MEAS_VERSION);
-        exit(0);
-}
-
 static int on_str(struct argparser *ap, struct option *opt)
 {
         printf("%zu\n", length(opt->sval, argparser_find(ap, "unicode")));
@@ -61,14 +49,14 @@ int main(int argc, char **argv)
         struct option *str;
         struct option *unicode;
 
-        ap = argparser_create("meas");
+        ap = argparser_create("meas", MEAS_VERSION);
         if (!ap) {
                 fprintf(stderr, "Failed to create argparser\n");
                 exit(1);
         }
 
-        argparser_add0(ap, &help, "h", "help", "show this help message and exit", NULL, opt_none);
-        argparser_add0(ap, &version, "version", NULL, "show current version", NULL, opt_none);
+        argparser_add0(ap, &help, "h", "help", "show this help message and exit", __acb_help, opt_none);
+        argparser_add0(ap, &version, "version", NULL, "show current version", __acb_version, opt_none);
         argparser_add1(ap, &str, "s", "str", "as string type", on_str, opt_reqval);
         argparser_add0(ap, &unicode, "u", "unicode", "use unicode parse string length", NULL, opt_none);
 

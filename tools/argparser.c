@@ -35,6 +35,7 @@
 struct argparser
 {
         const char *name;
+        const char *version;
 
         /* options */
         struct option *opts[MAX_UNIT];
@@ -342,7 +343,19 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
         return r < 0 ? r : 0;
 }
 
-struct argparser *argparser_create(const char *name)
+int __bulitin_acb_help(struct argparser *ap, struct option *opt)
+{
+        printf("%s\n", argparser_help(ap));
+        exit(0);
+}
+
+int __bulitin_acb_version(struct argparser *ap, struct option *opt)
+{
+        printf("%s %s\n", ap->name, ap->version);
+        exit(0);
+}
+
+struct argparser *argparser_create(const char *name, const char *version)
 {
         struct argparser *ap;
 
@@ -351,6 +364,7 @@ struct argparser *argparser_create(const char *name)
                 return NULL;
 
         ap->name = name;
+        ap->version = version;
 
         return ap;
 }

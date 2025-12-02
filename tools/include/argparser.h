@@ -28,6 +28,9 @@
 #define opt_concat  (1 << 1) /* -O1 -O2 */
 #define opt_nogroup (1 << 2) /* not allow group */
 
+#define __acb_help __bulitin_acb_help
+#define __acb_version __bulitin_acb_version
+
 struct argparser;
 struct option;
 
@@ -51,8 +54,11 @@ struct option
         fn_argparser_callback _cb;
 };
 
+int __bulitin_acb_help(struct argparser *ap, struct option *opt);
+int __bulitin_acb_version(struct argparser *ap, struct option *opt);
+
 /* If a result doesn't equal to 0 that mean error. */
-struct argparser *argparser_create(const char *name);
+struct argparser *argparser_create(const char *name, const char *version);
 void argparser_free(struct argparser *ap);
 
 /* Add options to argparser.
