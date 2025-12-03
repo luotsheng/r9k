@@ -15,7 +15,7 @@
 #include <ifaddrs.h>
 #include <errno.h>
 #include <argparser.h>
-#include <fx/typedefs.h>
+#include <r9k/typedefs.h>
 
 #define NS_VERSION "1.0"
 

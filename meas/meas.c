@@ -8,7 +8,7 @@
 #include <argparser.h>
 #include <ctype.h>
 #include <string.h>
-#include <fx/typedefs.h>
+#include <r9k/typedefs.h>
 
 #define MEAS_VERSION "1.0"
 

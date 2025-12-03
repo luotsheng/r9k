@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(fx C)
+project(r9k C)
 
 set(CMAKE_C_STANDARD 17)
 

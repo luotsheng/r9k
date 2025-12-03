@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fx/ioutils.h>
+#include <r9k/ioutils.h>
 
 static void write_to_clip(const char *text)
 {
