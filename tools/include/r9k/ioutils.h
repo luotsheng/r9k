@@ -38,11 +38,8 @@ static char *__fp_readall(FILE *fp)
                 len += n;
         }
 
-        if (!buf) {
-                buf = malloc(1);
-                if (!buf)
-                        return NULL;
-        }
+        if (!buf)
+                return NULL;
 
         buf[len] = '\0';
 
