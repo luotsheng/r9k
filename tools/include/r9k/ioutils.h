@@ -64,11 +64,8 @@ static char *readfile(const char *path)
 }
 #pragma GCC diagnostic pop
 
-static char *readin()
+inline static char *readin()
 {
-        if (isatty(STDIN_FILENO))
-                return NULL;
-
         return __fp_readall(stdin);
 }
 
