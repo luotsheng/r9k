@@ -7,8 +7,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#define readin() __fp_readall(stdin)
+#include "typedefs.h"
 
 static char *__fp_readall(FILE *fp)
 {
@@ -20,6 +21,7 @@ static char *__fp_readall(FILE *fp)
         size_t n;
 
         while ((n = fread(chunk, 1, sizeof(chunk), fp)) > 0) {
+                printf("n = %zu\n", n);
                 if (len + n + 1 > cap) {
                         cap = cap ? cap + (cap >> 1) : sizeof(chunk) * 2;
                         if (cap < len + n + 1)
@@ -65,5 +67,13 @@ static char *readfile(const char *path)
         return buf;
 }
 #pragma GCC diagnostic pop
+
+static char *readin()
+{
+        if (isatty(STDIN_FILENO))
+                return NULL;
+
+        return __fp_readall(stdin);
+}
 
 #endif /* IO_UTILS_H_ */

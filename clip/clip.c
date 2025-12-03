@@ -8,6 +8,8 @@
 #include <string.h>
 #include <r9k/ioutils.h>
 
+#include "r9k/typedefs.h"
+
 static void write_to_clip(const char *text)
 {
         if (!text || strlen(text) == 0)
@@ -53,9 +55,11 @@ int main(int argc, char **argv)
         }
 
         char *buf = readin();
-        write_to_clip(buf);
+        if (buf) {
+                write_to_clip(buf);
+                free(buf);
+        }
 
-        free(buf);
         argparser_free(ap);
 
         return 0;
