@@ -1,4 +1,4 @@
-#include "argparser.h"
+#include "../tools/include/r9k/argparser.h"
 /*
 * SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
@@ -6,9 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+//r9k
 #include <r9k/ioutils.h>
-
-#include "r9k/typedefs.h"
 
 static void write_to_clip(const char *text)
 {
