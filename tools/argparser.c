@@ -166,7 +166,7 @@ static struct option *lookup_short_char(struct argparser *ap, const char shortop
 {
         struct option *opt;
 
-        for (uint32_t i = 0; i < ap->nopt;) {
+        for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
                 if (opt->shortopt) {
                         if (strlen(opt->shortopt) == 1 && shortopt == opt->shortopt[0])
@@ -181,7 +181,7 @@ static struct option *lookup_short_str(struct argparser *ap, const char *shortop
 {
         struct option *opt;
 
-        for (uint32_t i = 0; i < ap->nopt;) {
+        for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
                 if (opt->shortopt && strcmp(shortopt, opt->shortopt) == 0)
                         return opt;
@@ -194,7 +194,7 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
 {
         struct option *opt;
 
-        for (uint32_t i = 0; i < ap->nopt;) {
+        for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
                 if (opt->longopt && strcmp(longopt, opt->longopt) == 0)
                         return opt;
@@ -449,7 +449,7 @@ static int execacb(struct argparser *ap)
         int r;
         struct option *opt;
 
-        for (uint32_t i = 0; i < ap->nopt;) {
+        for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
                 if (*opt->_refs != NULL && opt->_cb != NULL) {
                         r = opt->_cb(ap, opt);
@@ -555,7 +555,7 @@ const char *argparser_help(struct argparser *ap)
 
         n += snprintf(ap->help + n, sizeof(ap->help) - n, "Options:\n");
 
-        for (uint32_t i = 0; i < ap->nopt;) {
+        for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
 
                 if (opt->shortopt) {

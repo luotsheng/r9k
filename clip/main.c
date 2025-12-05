@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         ap = argparser_create("clip", "1.0");
         if (!ap) {
                 fprintf(stderr, "Failed to create argparser\n");
-                exit(1);
+                return -1;
         }
 
         argparser_add0(ap, &opt_help, "h", "help", "show this help message and exit", __acb_help, opt_none);
