@@ -13,7 +13,4 @@ do {                                            \
         exit(EXIT_FAILURE);                     \
 } while (0)
 
-#define streq(a, b) (strcmp(a, b) == 0)
-#define strne(a, b) (!streq(a, b))
-
 #endif /* TYPEDEFS_H_ */

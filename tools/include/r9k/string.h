@@ -7,6 +7,10 @@
 
 #include <string.h>
 
-int is_str_blank(const char *str);
+int __is_str_blank(const char *str);
+
+#define streq(a, b) (strcmp(a, b) == 0)
+#define strne(a, b) (!streq(a, b))
+#define isblank(str) (__is_str_blank(str))
 
 #endif /* R9K_STRING_H_ */
