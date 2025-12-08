@@ -5,14 +5,9 @@
 #include "clip.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <Carbon/Carbon.h>
 #include "platform/clipboard.h"
-
-static int strblank(const char *str)
-{
-        return !str || !*str || strspn(str, "\t\r\n") == strlen(str);
-}
+#include <r9k/string.h>
 
 int clip_write(const char *text)
 {
@@ -53,7 +48,7 @@ void clip_watch(PFN_clip_watch watch)
         while (1) {
                 char *cur = clip_read();
 
-                if (cur && !strblank(cur) && (!prev || strcmp(cur, prev) != 0)) {
+                if (cur && !is_str_blank(cur) && (!prev || strcmp(cur, prev) != 0)) {
                         watch(cur);
                         free(prev);
                         prev = cur;
