@@ -618,39 +618,58 @@ const char *argparser_val(struct argparser *ap, uint32_t index)
 const char *argparser_help(struct argparser *ap)
 {
         size_t n = 0;
+        size_t cap = sizeof(ap->help);
         struct option *opt;
 
-        if (ap->name)
-                n += snprintf(ap->help, sizeof(ap->help), "Usage: %s [options]\n", ap->name);
+#define APPEND(fmt, ...)                                                \
+        do {                                                            \
+                int __r;                                                \
+                __r = snprintf(ap->help + n, cap - n, (fmt),            \
+                               ##__VA_ARGS__);                          \
+                if (__r < 0) {                                          \
+                        error(ap, strerror(errno));                     \
+                        return NULL;                                    \
+                }                                                       \
+                if ((size_t) __r >= cap - n)                            \
+                        goto out;                                       \
+                n += __r;                                               \
+        } while (0)
 
-        n += snprintf(ap->help + n, sizeof(ap->help) - n, "Options:\n");
+        if (ap->name)
+                APPEND("Usage: %s [options]\n", ap->name);
+
+        APPEND("Options:\n");
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
 
                 if (opt->shortopt) {
-                        n += snprintf(ap->help + n, sizeof(ap->help) - n, "  -%s", opt->shortopt);
+                        APPEND("  -%s", opt->shortopt);
                 } else {
-                        n += snprintf(ap->help + n, sizeof(ap->help) - n, "  ");
+                        APPEND("  ");
                 }
 
                 if (opt->longopt) {
                         if (opt->shortopt) {
-                                n += snprintf(ap->help + n, sizeof(ap->help) - n, ", --%s", opt->longopt);
+                                APPEND(", --%s", opt->longopt);
                         } else {
-                                n += snprintf(ap->help + n, sizeof(ap->help) - n, "--%s", opt->longopt);
+                                APPEND("--%s", opt->longopt);
                         }
                 }
 
                 if (opt->flags & opt_reqval)
-                        n += snprintf(ap->help + n, sizeof(ap->help) - n, " <value>");
+                        APPEND(" <value>");
 
                 if (opt->tips)
-                        n += snprintf(ap->help + n, sizeof(ap->help) - n, "\n    %s\n", opt->tips);
+                        APPEND("\n    %s\n", opt->tips);
 
-                n += snprintf(ap->help + n, sizeof(ap->help) - n, "\n");
+                APPEND("\n");
         }
 
-        ap->help[n - 1] = '\0';
+#undef APPEND
+out:
+        if (n >= cap)
+                n = cap - 1;
+        ap->help[n] = '\0';
         return ap->help;
 }
