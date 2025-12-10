@@ -7,10 +7,15 @@
 
 #include <string.h>
 
-int __is_str_blank(const char *str);
+static int streq(const char *s1, const char *s2)
+{
+        return strcmp(s1, s2) == 0;
+}
 
-#define streq(a, b) (strcmp(a, b) == 0)
-#define strne(a, b) (!streq(a, b))
-#define isblank(str) (__is_str_blank(str))
+static int strblank(const char *str)
+{
+        return !str || !*str ||
+                strspn("\r\t\n", str) == strlen(str);
+}
 
 #endif /* R9K_STRING_H_ */
