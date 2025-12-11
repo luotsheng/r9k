@@ -478,6 +478,8 @@ void argparser_free(struct argparser *ap)
 
                         free(ap->opts[i]);
                 }
+                free(ap->opts);
+                ap->opts = NULL;
         }
 
         if (ap->vals)
