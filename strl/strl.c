@@ -36,7 +36,7 @@ static size_t utf8len(const char *str)
         return len;
 }
 
-static ssize_t count_stream(FILE *fptr, struct option *ischr, int *err)
+static ssize_t stream_count(FILE *fptr, struct option *ischr, int *err)
 {
         char buf[BUFSIZE + 1];
         ssize_t total = 0;
@@ -82,7 +82,7 @@ static void process_stream(struct option *files, struct option *ischr)
         /* read stdin */
         if (files == NULL) {
                 int err = 0;
-                total = count_stream(stdin, ischr, &err);
+                total = stream_count(stdin, ischr, &err);
                 if (total <= 0)
                         die("ERROR read in standard input: %s\n", strerror(err));
                 printf("%ld\n", total);
