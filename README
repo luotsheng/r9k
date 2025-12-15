@@ -4,6 +4,6 @@ r9k
 
 lightweight command-line tools for Linux and macOS terminals, including:
 
-- `strl` – word or line count tools.
+- `strc` – word or line count tools.
 
 ...
