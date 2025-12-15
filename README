@@ -1,10 +1,9 @@
+
 -------
 r9k
 
 lightweight command-line tools for Linux and macOS terminals, including:
 
-- `ns` – network utilities  
-- `clip` – clipboard management  
-- `count` – character and line counting
+- `strl` – word or line count tools.
 
 ...
