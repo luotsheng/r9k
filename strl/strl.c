@@ -117,28 +117,32 @@ static void process_stream(struct option *files, struct option *ischr)
 int main(int argc, char* argv[])
 {
         struct argparser *ap;
-        struct option *help;
-        struct option *version;
-        struct option *ischr;
-        struct option *files;
+        struct option *opt_h;
+        struct option *opt_version;
+        struct option *opt_c;
+        struct option *opt_l;
+        struct option *opt_f;
 
         ap = argparser_create("strl", "1.0.0");
         if (!ap)
                 die("argparser initialize failed");
 
-        argparser_add0(ap, &help, "h", "help", "show this help message.", ACB_EXIT_HELP, 0);
-        argparser_add0(ap, &version, "version", NULL, "show current version.", ACB_EXIT_VERSION, 0);
-        argparser_add0(ap, &ischr, "c", NULL, "count characters by unicode.", NULL, 0);
-        argparser_addn(ap, &files, "f", NULL, 128, "count files.", NULL, OPT_REQUIRED);
+        argparser_add0(ap, &opt_h, "h", "help", "show this help message.", ACB_EXIT_HELP, 0);
+        argparser_add0(ap, &opt_version, "version", NULL, "show current version.", ACB_EXIT_VERSION, 0);
+        argparser_add0(ap, &opt_c, "c", NULL, "count characters by unicode.", NULL, 0);
+        argparser_add0(ap, &opt_l, "l", NULL, "count line.", NULL, 0);
+        argparser_addn(ap, &opt_f, "f", NULL, 128, "count files.", NULL, OPT_REQUIRED);
+
+        argparser_mutual_exclude(ap, &opt_c, &opt_l);
 
         if (argparser_run(ap, argc, argv) != 0)
                 die("%s\n", argparser_error(ap));
 
-        if (files || argparser_count(ap) == 0) {
-                process_stream(files, ischr);
+        if (opt_f || argparser_count(ap) == 0) {
+                process_stream(opt_f, opt_c);
         } else {
                 const char *str = argparser_val(ap, 0);
-                printf("  %ld\n", ischr ? utf8len(str) : strlen(str));
+                printf("  %ld\n", opt_c ? utf8len(str) : strlen(str));
         }
 
         argparser_free(ap);

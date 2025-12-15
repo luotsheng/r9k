@@ -114,6 +114,14 @@ int argparser_addn(struct argparser *ap,
                    argparser_callback_t cb,
                    uint32_t flags); /* n argument */
 
+/* Register a new mutually exclusive group.
+ * Each call to this macro creates an independent group.
+ * Options in the same group cannot appear simultaneously. */
+#define argparser_mutual_exclude(ap, ...) \
+        _argparser_builtin_mutual_exclude((ap), __VA_ARGS__, NULL)
+
+void _argparser_builtin_mutual_exclude(struct argparser *ap, ...);
+
 /* Parsing arguments */
 int argparser_run(struct argparser *ap, int argc, char *argv[]);
 const char *argparser_error(struct argparser *ap);

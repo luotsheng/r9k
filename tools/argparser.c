@@ -18,17 +18,18 @@
 
 #define OPT_PREFIX(is_long) (is_long ? "--" : "-")
 
-typedef struct
+struct builtin_option
 {
         struct option pub;
 
         /* built-in */
         uint32_t _valcap;
-        struct option** _refs; /* if an input option using _refs writes back the pointer. */
+        struct option** _slot; /* if an input option using _slot writes back the pointer. */
         argparser_callback_t _cb;
         uint32_t _maxval;
         uint32_t _flags;
-} internal_option_t;
+        uint32_t _mulid; /* mutual group id */
+};
 
 struct argparser
 {
@@ -36,7 +37,7 @@ struct argparser
         const char *version;
 
         /* options */
-        internal_option_t **opts;
+        struct builtin_option **opts;
         uint32_t nopt;
         uint32_t optcap;
 
@@ -48,6 +49,9 @@ struct argparser
         /* buff */
         char error[MAX_MSG];
         char help[MAX_MSG];
+
+        /* id */
+        uint32_t _mulid;
 };
 
 static void error(struct argparser *ap, const char *fmt, ...)
@@ -63,12 +67,17 @@ static void error(struct argparser *ap, const char *fmt, ...)
         va_end(va);
 }
 
+static uint32_t getmulid(struct argparser *ap)
+{
+        return ap->_mulid++;
+}
+
 static int ensure_option_capacity(struct argparser *ap)
 {
         if (ap->nopt >= ap->optcap) {
-                internal_option_t **tmp;
+                struct builtin_option **tmp;
                 ap->optcap *= 2;
-                tmp = realloc(ap->opts, ap->optcap * sizeof(internal_option_t *));
+                tmp = realloc(ap->opts, ap->optcap * sizeof(struct builtin_option *));
                 if (!tmp)
                         return -ENOMEM;
                 ap->opts = tmp;
@@ -91,7 +100,7 @@ static int ensure_values_capacity(struct argparser *ap)
         return 0;
 }
 
-static int internal_option_add(struct argparser *ap, internal_option_t *opt)
+static int builtin_option_add(struct argparser *ap, struct builtin_option *opt)
 {
         int r;
         if ((r = ensure_option_capacity(ap)) != 0)
@@ -114,7 +123,7 @@ static int store_position_val(struct argparser *ap, const char *val)
 }
 
 static int store_option_val(struct argparser *ap,
-                            internal_option_t *opt,
+                            struct builtin_option *opt,
                             int is_long,
                             char *tok,
                             const char *val)
@@ -154,19 +163,49 @@ static int store_option_val(struct argparser *ap,
         return 0;
 }
 
+static struct builtin_option *is_mutual(struct argparser *ap, struct builtin_option *opt)
+{
+        struct builtin_option *ent;
+
+        if (opt->_mulid == 0)
+                return NULL;
+
+        for (uint32_t i = 0; i < ap->nopt; i++) {
+                ent = ap->opts[i];
+                if (ent == opt)
+                        continue;
+
+                if (*ent->_slot != NULL && ent->_mulid == opt->_mulid)
+                        return ent;
+        }
+
+        return NULL;
+}
+
 /* Try to take a value for option, if the option not needs a value
  * or max is zero, that return 0 also return options consume value
  * count. */
 static int try_take_val(struct argparser *ap,
-                        internal_option_t *opt,
+                        struct builtin_option *opt,
                         int is_long,
                         char *tok,
                         char *eqval,
                         int *i,
                         char *argv[])
 {
-        if (opt->_refs)
-                *opt->_refs = &opt->pub;
+        if (opt->_slot) {
+                *opt->_slot = &opt->pub;
+
+                struct builtin_option *ent = is_mutual(ap, opt);
+                if (ent) {
+                       error(ap, "%s%s conflicts with option %s%s",
+                               OPT_PREFIX(is_long), tok,
+                               ent->pub.shortopt ? "-" : "--",
+                               ent->pub.shortopt ? ent->pub.shortopt : ent->pub.longopt);
+                        return -EINVAL;
+                }
+
+        }
 
         if (opt->_maxval == 0) {
                 if (opt->_flags & OPT_REQUIRED) {
@@ -201,9 +240,19 @@ static int try_take_val(struct argparser *ap,
         return (int) opt->pub.nval;
 }
 
-static internal_option_t *lookup_short_char(struct argparser *ap, const char shortopt)
+static struct builtin_option *lookup_slot(struct argparser *ap, struct option **slot)
 {
-        internal_option_t *opt;
+        for (uint32_t i = 0; i < ap->nopt; i++) {
+                struct builtin_option *opt = ap->opts[i];
+                if (opt->_slot == slot)
+                        return opt;
+        }
+        return NULL;
+}
+
+static struct builtin_option *lookup_short_char(struct argparser *ap, const char shortopt)
+{
+        struct builtin_option *opt;
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
@@ -216,9 +265,9 @@ static internal_option_t *lookup_short_char(struct argparser *ap, const char sho
         return NULL;
 }
 
-static internal_option_t *lookup_short_str(struct argparser *ap, const char *shortopt)
+static struct builtin_option *lookup_short_str(struct argparser *ap, const char *shortopt)
 {
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
@@ -229,9 +278,9 @@ static internal_option_t *lookup_short_str(struct argparser *ap, const char *sho
         return NULL;
 }
 
-static internal_option_t *lookup_long(struct argparser *ap, const char *longopt)
+static struct builtin_option *lookup_long(struct argparser *ap, const char *longopt)
 {
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
@@ -245,7 +294,7 @@ static internal_option_t *lookup_long(struct argparser *ap, const char *longopt)
 static int handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[])
 {
         char *defval = NULL;
-        internal_option_t *opt;
+        struct builtin_option *opt;
         char tmp[2];
         size_t len;
 
@@ -272,7 +321,7 @@ static int handle_short_assign(struct argparser *ap, char *tok, int *i, char *ar
 {
         int r = 0;
         char *eqval = NULL;
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         char *eq = strchr(tok, '=');
         if (eq) {
@@ -298,7 +347,7 @@ static int handle_short_group(struct argparser *ap, char *tok, int *i, char *arg
 {
         bool has_val = false;
         char has_val_opt = 0;
-        internal_option_t *opt;
+        struct builtin_option *opt;
         char tmp[2];
 
         for (int k = 0; tok[k]; k++) {
@@ -366,7 +415,7 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
 {
         int r = 0;
         char *eqval = NULL;
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         char *eq = strchr(tok, '=');
         if (eq) {
@@ -427,6 +476,8 @@ struct argparser *argparser_create(const char *name, const char *version)
                 return NULL;
         }
 
+        ap->_mulid = 1;
+
         return ap;
 }
 
@@ -437,7 +488,7 @@ void argparser_free(struct argparser *ap)
 
         if (ap->opts) {
                 for (uint32_t i = 0; i < ap->nopt; i++) {
-                        internal_option_t *opt = ap->opts[i];
+                        struct builtin_option *opt = ap->opts[i];
                         free(opt->pub.vals);
                         free(ap->opts[i]);
                 }
@@ -481,7 +532,7 @@ int argparser_addn(struct argparser *ap,
                    uint32_t flags)
 {
         int r;
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         /* check exists */
         if (longopt && lookup_long(ap, longopt)) {
@@ -509,10 +560,10 @@ int argparser_addn(struct argparser *ap,
         opt->pub.tips = tips;
         opt->_maxval = max;
         opt->_flags = flags;
-        opt->_refs = result_slot;
+        opt->_slot = result_slot;
         opt->_cb = cb;
 
-        r = internal_option_add(ap, opt);
+        r = builtin_option_add(ap, opt);
         if (r != 0) {
                 free(opt);
                 return r;
@@ -524,11 +575,11 @@ int argparser_addn(struct argparser *ap,
 static int execacb(struct argparser *ap)
 {
         int r;
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (*opt->_refs != NULL && opt->_cb != NULL) {
+                if (*opt->_slot != NULL && opt->_cb != NULL) {
                         r = opt->_cb(ap, &opt->pub);
                         if (r != 0)
                                 return -EINVAL;
@@ -536,6 +587,23 @@ static int execacb(struct argparser *ap)
         }
 
         return 0;
+}
+
+void _argparser_builtin_mutual_exclude(struct argparser *ap, ...)
+{
+        va_list va;
+        struct option **slot;
+        struct builtin_option *opt;
+        uint32_t mulid = getmulid(ap);
+
+        va_start(va, ap);
+        while ((slot = va_arg(va, struct option **)) != NULL) {
+                opt = lookup_slot(ap, slot);
+                if (!opt)
+                        continue;
+                opt->_mulid = mulid;
+        }
+        va_end(va);
 }
 
 int argparser_run(struct argparser *ap, int argc, char *argv[])
@@ -592,7 +660,7 @@ const char *argparser_error(struct argparser *ap)
 struct option *argparser_has(struct argparser *ap, const char *name)
 {
         size_t size;
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
         size = strlen(name);
 
@@ -613,7 +681,7 @@ struct option *argparser_has(struct argparser *ap, const char *name)
         return NULL;
 
 found:
-        return *opt->_refs ? &opt->pub : NULL;
+        return *opt->_slot ? &opt->pub : NULL;
 }
 
 uint32_t argparser_count(struct argparser *ap)
@@ -633,7 +701,7 @@ const char *argparser_help(struct argparser *ap)
 {
         size_t n = 0;
         size_t cap = sizeof(ap->help);
-        internal_option_t *opt;
+        struct builtin_option *opt;
 
 #define APPEND(fmt, ...)                                                \
         do {                                                            \
