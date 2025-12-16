@@ -36,6 +36,33 @@ static int is_unreserved(unsigned char c)
         }
 }
 
+static int url_query(struct argparser *ap, struct option *o_qs)
+{
+        const char *q;
+        const char *amp;
+
+        q = strchr(o_qs->sval, '?');
+
+        q++; /* skip '?' */
+
+        if (!argparser_has(ap, "no-title"))
+                printf("=== QUERY ===\n");
+
+        while (*q) {
+                amp = strchr(q, '&');
+                if (!amp)
+                        break;
+
+                putchar(' ');
+                fwrite(q, 1, amp - q, stdout);
+                putchar('\n');
+
+                q = amp + 1;
+        }
+
+        return 0;
+}
+
 static int url_encode(struct argparser *ap, struct option *o_encode)
 {
         __attr_ignore(ap);
@@ -108,6 +135,7 @@ static int url_decode(struct argparser *ap, struct option *o_decode)
 int main(int argc, char* argv[])
 {
         struct argparser *ap;
+        struct option *qs;
         struct option *encode;
         struct option *decode;
         struct option *no_title;
@@ -115,6 +143,7 @@ int main(int argc, char* argv[])
         ap = argparser_create("url", "1.0");
         PANIC_IF(!ap, "argparser initialize failed");
 
+        argparser_add1(ap, &qs, "qs", NULL, "parse parameters in url", url_query, O_REQUIRED);
         argparser_add1(ap, &encode, NULL, "encode", "url encoding", url_encode, O_REQUIRED);
         argparser_add1(ap, &decode, NULL, "decode", "url decoding", url_decode, O_REQUIRED);
         argparser_add0(ap, &no_title, NULL, "no-title", "do not show option title", NULL, 0);
