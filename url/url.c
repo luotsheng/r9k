@@ -74,8 +74,6 @@ static int url_encode(struct argparser *ap, struct option *o_encode)
 
 static int url_decode(struct argparser *ap, struct option *o_decode)
 {
-        __attr_ignore(ap);
-
         char *out, *q;
         const char *p, *s;
 

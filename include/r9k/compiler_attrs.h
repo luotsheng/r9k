@@ -6,6 +6,7 @@
 #define COMPILER_ATTRUBUTES_H_
 
 #define __attr_ignore(x) ((void)(x))
+#define __attr_ignore2(a, b) __attr_ignore(a), __attr_ignore(b)
 
 #if defined(__GNUC__) || defined(__clang__)
 #  define __attr_nonnull(...) __attribute__((nonnull(__VA_ARGS__)))
