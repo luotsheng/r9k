@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <r9k/compiler_attrs.h>
 
 #define MIN_CAP 8 /* default */
 #define MAX_MSG 4096
@@ -60,7 +61,8 @@ struct argparser
         uint32_t _mulid;
 };
 
-static void error(struct argparser *ap, const char *fmt, ...)
+static void ap_error(struct argparser *ap, const char *fmt, ...)
+        __attr_printf(2, 3)
 {
         va_list va;
         size_t n;
@@ -135,7 +137,7 @@ static int store_option_val(struct argparser *ap,
                             const char *val)
 {
         if (op_hdr->pub.nval > op_hdr->_maxval) {
-                error(ap, "%s%s option value out of %d", OPT_PREFIX(is_long), tok, op_hdr->_maxval);
+                ap_error(ap, "%s%s option value out of %d", OPT_PREFIX(is_long), tok, op_hdr->_maxval);
                 return -EOVERFLOW;
         }
 
@@ -144,7 +146,7 @@ static int store_option_val(struct argparser *ap,
                 op_hdr->pub.nval = 0;
                 op_hdr->pub.vals = calloc(op_hdr->_valcap, sizeof(char *));
                 if (!op_hdr->pub.vals) {
-                        error(ap, strerror(errno));
+                        ap_error(ap, strerror(errno));
                         return -ENOMEM;
                 }
         }
@@ -154,7 +156,7 @@ static int store_option_val(struct argparser *ap,
                 op_hdr->_valcap *= 2;
                 tmp_vals = realloc(op_hdr->pub.vals, sizeof(char *) * op_hdr->_valcap);
                 if (!tmp_vals) {
-                        error(ap, strerror(errno));
+                        ap_error(ap, strerror(errno));
                         return -ENOMEM;
                 }
 
@@ -204,7 +206,7 @@ static int try_take_val(struct argparser *ap,
 
                 struct option_hdr *ent = is_mutual(ap, op_hdr);
                 if (ent) {
-                       error(ap, "%s%s conflicts with option %s%s",
+                       ap_error(ap, "%s%s conflicts with option %s%s",
                                OPT_PREFIX(is_long), tok,
                                ent->pub.shortopt ? "-" : "--",
                                ent->pub.shortopt ? ent->pub.shortopt : ent->pub.longopt);
@@ -215,7 +217,7 @@ static int try_take_val(struct argparser *ap,
 
         if (op_hdr->_maxval == 0) {
                 if (op_hdr->_flags & O_REQUIRED) {
-                        error(ap, "option %s%s flag need requires a value, but max capacity is zero",
+                        ap_error(ap, "option %s%s flag need requires a value, but max capacity is zero",
                               OPT_PREFIX(is_long), tok);
                         return -EINVAL;
                 }
@@ -233,7 +235,7 @@ static int try_take_val(struct argparser *ap,
 
                 if (!val || val[0] == '-') {
                         if ((op_hdr->_flags & O_REQUIRED) && op_hdr->pub.nval == 0) {
-                                error(ap, "option %s%s missing required argument", OPT_PREFIX(is_long), tok);
+                                ap_error(ap, "option %s%s missing required argument", OPT_PREFIX(is_long), tok);
                                 return -EINVAL;
                         }
                         break;
@@ -342,7 +344,7 @@ static int handle_short_assign(struct argparser *ap, char *tok, int *i, char *ar
         }
 
         if (eqval) {
-                error(ap, "unknown option: -%s", tok);
+                ap_error(ap, "unknown option: -%s", tok);
                 return -EINVAL;
         }
 
@@ -359,22 +361,22 @@ static int handle_short_group(struct argparser *ap, char *tok, int *i, char *arg
         for (int k = 0; tok[k]; k++) {
                 op_hdr = lookup_short_char(ap, tok[k]);
                 if (!op_hdr) {
-                        error(ap, "unknown option: -%c", tok[k]);
+                        ap_error(ap, "unknown option: -%c", tok[k]);
                         return -EINVAL;
                 }
 
                 if (op_hdr->_flags & O_CONCAT) {
-                        error(ap, "invalid option -%c cannot be in a group", tok[k]);
+                        ap_error(ap, "invalid option -%c cannot be in a group", tok[k]);
                         return -EINVAL;
                 }
 
                 if (op_hdr->_flags & O_NOGROUP) {
-                        error(ap, "option -%c cannot be used as a group", tok[k]);
+                        ap_error(ap, "option -%c cannot be used as a group", tok[k]);
                         return -EINVAL;
                 }
 
                 if (has_val && op_hdr->_maxval > 0) {
-                        error(ap, "option -%c does not accept a value, cause option -%c already acceped", tok[k], has_val_opt);
+                        ap_error(ap, "option -%c does not accept a value, cause option -%c already acceped", tok[k], has_val_opt);
                         return -EINVAL;
                 }
 
@@ -431,7 +433,7 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
 
         op_hdr = lookup_long(ap, tok);
         if (!op_hdr) {
-                error(ap, "unknown option: --%s", tok);
+                ap_error(ap, "unknown option: --%s", tok);
                 return -EINVAL;
         }
 
@@ -484,7 +486,7 @@ struct argparser *argparser_create_raw(const char *name, const char *version)
         ap->optcap = MIN_CAP;
         ap->opts = calloc(ap->optcap, sizeof(*ap->opts));
         if (!ap->opts) {
-                error(ap, strerror(errno));
+                ap_error(ap, strerror(errno));
                 argparser_free(ap);
                 return NULL;
         }
@@ -493,7 +495,7 @@ struct argparser *argparser_create_raw(const char *name, const char *version)
         ap->posvalcap = MIN_CAP;
         ap->posvals = calloc(ap->posvalcap, sizeof(*ap->posvals));
         if (!ap->posvals) {
-                error(ap, strerror(errno));
+                ap_error(ap, strerror(errno));
                 argparser_free(ap);
                 return NULL;
         }
@@ -738,18 +740,18 @@ const char *argparser_help(struct argparser *ap)
         size_t cap = sizeof(ap->help);
         struct option_hdr *op_hdr;
 
-#define APPEND(fmt, ...)                                                \
-        do {                                                            \
-                int __r;                                                \
-                __r = snprintf(ap->help + n, cap - n, (fmt),            \
-                               ##__VA_ARGS__);                          \
-                if (__r < 0) {                                          \
-                        error(ap, strerror(errno));                     \
-                        return NULL;                                    \
-                }                                                       \
-                if ((size_t) __r >= cap - n)                            \
-                        goto out;                                       \
-                n += __r;                                               \
+#define APPEND(fmt, ...)                                        \
+        do {                                                    \
+                int __r;                                        \
+                __r = snprintf(ap->help + n, cap - n, (fmt),    \
+                               ##__VA_ARGS__);                  \
+                if (__r < 0) {                                  \
+                        ap_error(ap, strerror(errno));          \
+                        return NULL;                            \
+                }                                               \
+                if ((size_t) __r >= cap - n)                    \
+                        goto out;                               \
+                n += __r;                                       \
         } while (0)
 
         if (ap->name)
