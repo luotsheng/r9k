@@ -123,7 +123,8 @@ static void process_stream(struct option *f,
         /* run thread */
         for (uint32_t i = 0; i < f->nval; i++) {
                 pthread_join(threads[i], NULL);
-                PANIC_IF(args[i].err != 0, "ERROR: %s: %s\n", args[i].path, strerror(args[i].err));
+                if (args[i].err != 0)
+                        PANIC("ERROR: %s: %s\n", args[i].path, strerror(args[i].err));
                 printf("%8ld %s\n", args[i].ret, args[i].path);
                 total += args[i].ret;
         }
@@ -135,16 +136,17 @@ static void process_stream(struct option *f,
 int main(int argc, char* argv[])
 {
         struct argparser *ap;
-        struct option *m, *l, *f;
+        struct option *c, *m, *l, *f;
 
         ap = argparser_create("strc", "1.0.0");
         PANIC_IF(!ap, "argparser initialize failed");
 
-        argparser_add0(ap, &m, "m", NULL, "count characters by unicode.", NULL, 0);
+        argparser_add0(ap, &c, "c", NULL, "count bytes.", NULL, 0);
+        argparser_add0(ap, &m, "m", NULL, "count UTF-8 characters", NULL, 0);
         argparser_add0(ap, &l, "l", NULL, "count line.", NULL, 0);
         argparser_addn(ap, &f, "f", NULL, 128, "count files.", NULL, O_REQUIRED);
 
-        argparser_mutual_exclude(ap, &m, &l);
+        argparser_mutual_exclude(ap, &c, &m, &l);
 
         if (argparser_run(ap, argc, argv) != 0)
                 PANIC("%s\n", argparser_error(ap));
