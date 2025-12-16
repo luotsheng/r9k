@@ -1,11 +1,11 @@
 /*
-* SPDX-License-Identifier: MIT
+-* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
  */
 #include <r9k/string.h>
 #include <ctype.h>
 
-int strblank(const char *str)
+int is_str_blank(const char *str)
 {
         if (!str)
                 return 1;
