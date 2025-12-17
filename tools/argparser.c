@@ -30,6 +30,8 @@ struct option_hdr
         struct option pub;
 
         /* built-in */
+        size_t _short_len;
+        size_t _long_len;
         uint32_t _valcap;
         struct option** _slot; /* if an input option using _slot writes back the pointer. */
         argparser_callback_t _cb;
@@ -71,7 +73,7 @@ struct argparser
         uint32_t _mulid;
 };
 
-static struct argparser *lookup_cmd(struct argparser *ap, const char *name)
+static struct argparser *find_subcmd(struct argparser *ap, const char *name)
 {
         if (!ap->cmd_next)
                 return NULL;
@@ -79,7 +81,53 @@ static struct argparser *lookup_cmd(struct argparser *ap, const char *name)
         if (strcmp(ap->cmd_next->name, name) == 0)
                 return ap->cmd_next;
 
-        return lookup_cmd(ap->cmd_next, name);
+        return find_subcmd(ap->cmd_next, name);
+}
+
+static struct option_hdr *find_hdr_slot(struct argparser *ap, struct option **slot)
+{
+        for (uint32_t i = 0; i < ap->nopt; i++) {
+                struct option_hdr *op_hdr = ap->opts[i];
+                if (op_hdr->_slot == slot)
+                        return op_hdr;
+        }
+        return NULL;
+}
+
+static struct option_hdr *find_hdr_option(struct argparser *ap, const char *name)
+{
+        bool is_short_char;
+        const char *lopt;
+        const char *sopt;
+        size_t len;
+
+        if (!name || name[0] == '\0')
+                return NULL;
+
+        len = strlen(name);
+        is_short_char = (name[1] == '\0');
+
+        for (uint32_t i = 0; i < ap->nopt; i++) {
+                struct option_hdr *op_hdr = ap->opts[i];
+
+                lopt = op_hdr->pub.longopt;
+                sopt = op_hdr->pub.shortopt;
+
+                if (sopt) {
+                        if (is_short_char && op_hdr->_short_len == 1 && sopt[0] == name[0])
+                                return op_hdr;
+
+                        if (op_hdr->_short_len == len && memcmp(sopt, name, len) == 0)
+                                return op_hdr;
+                }
+
+                if (lopt) {
+                        if (op_hdr->_long_len == len && memcmp(lopt, name, len) == 0)
+                                return op_hdr;
+                }
+        }
+
+        return NULL;
 }
 
 __attribute__((format(printf, 2, 3)))
@@ -269,74 +317,23 @@ static int try_take_val(struct argparser *ap,
         return (int) op_hdr->pub.nval;
 }
 
-static struct option_hdr *lookup_slot(struct argparser *ap, struct option **slot)
-{
-        for (uint32_t i = 0; i < ap->nopt; i++) {
-                struct option_hdr *op_hdr = ap->opts[i];
-                if (op_hdr->_slot == slot)
-                        return op_hdr;
-        }
-        return NULL;
-}
-
-static struct option_hdr *lookup_short_char(struct argparser *ap, const char shortopt)
-{
-        struct option_hdr *op_hdr;
-
-        for (uint32_t i = 0; i < ap->nopt; i++) {
-                op_hdr = ap->opts[i];
-                if (op_hdr->pub.shortopt) {
-                        if (strlen(op_hdr->pub.shortopt) == 1 && shortopt == op_hdr->pub.shortopt[0])
-                                return op_hdr;
-                }
-        }
-
-        return NULL;
-}
-
-static struct option_hdr *lookup_short_str(struct argparser *ap, const char *shortopt)
-{
-        struct option_hdr *op_hdr;
-
-        for (uint32_t i = 0; i < ap->nopt; i++) {
-                op_hdr = ap->opts[i];
-                if (op_hdr->pub.shortopt && strcmp(shortopt, op_hdr->pub.shortopt) == 0)
-                        return op_hdr;
-        }
-
-        return NULL;
-}
-
-static struct option_hdr *lookup_long(struct argparser *ap, const char *longopt)
-{
-        struct option_hdr *op_hdr;
-
-        for (uint32_t i = 0; i < ap->nopt; i++) {
-                op_hdr = ap->opts[i];
-                if (op_hdr->pub.longopt && strcmp(longopt, op_hdr->pub.longopt) == 0)
-                        return op_hdr;
-        }
-
-        return NULL;
-}
-
 static int handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[])
 {
         char *defval = NULL;
         struct option_hdr *op_hdr;
-        char tmp[2];
         size_t len;
+        char short_char_tmp[2];
 
         len = strlen(tok);
+        short_char_tmp[1] = '\0';
 
-        tmp[0] = tok[0];
-        tmp[1] = '\0';
-        op_hdr = lookup_short_str(ap, tmp);
+        short_char_tmp[0] = tok[0];
+        op_hdr = find_hdr_option(ap, short_char_tmp);
         if (op_hdr != NULL && (op_hdr->_flags & O_CONCAT)) {
                 if (len > 1)
                         defval = tok + 1;
 
-                int r = try_take_val(ap, op_hdr, SHORT, tmp, defval, i, argv);
+                int r = try_take_val(ap, op_hdr, SHORT, short_char_tmp, defval, i, argv);
                 if (r < 0)
                         return r;
 
@@ -358,7 +355,7 @@ static int handle_short_assign(struct argparser *ap, char *tok, int *i, char *ar
                 *eq = '\0';
         }
 
-        op_hdr = lookup_short_str(ap, tok);
+        op_hdr = find_hdr_option(ap, tok);
         if (op_hdr != NULL) {
                 r = try_take_val(ap, op_hdr, SHORT, tok, eqval, i, argv);
                 return r < 0 ? r : 1;
@@ -377,10 +374,13 @@ static int handle_short_group(struct argparser *ap, char *tok, int *i, char *arg
         bool has_val = false;
         char has_val_opt = 0;
         struct option_hdr *op_hdr;
-        char tmp[2];
+        char short_char_tmp[2];
 
+        short_char_tmp[1] = '\0';
+        
         for (int k = 0; tok[k]; k++) {
-                op_hdr = lookup_short_char(ap, tok[k]);
+                short_char_tmp[0] = tok[k];
+                op_hdr = find_hdr_option(ap, short_char_tmp);
                 if (!op_hdr) {
                         _error(ap, "unknown option: -%c", tok[k]);
                         return -EINVAL;
@@ -401,10 +401,9 @@ static int handle_short_group(struct argparser *ap, char *tok, int *i, char *arg
                         return -EINVAL;
                 }
 
-                tmp[0] = tok[k];
-                tmp[1] = '\0';
+                short_char_tmp[0] = tok[k];
 
-                int r = try_take_val(ap, op_hdr, SHORT, tmp, NULL, i, argv);
+                int r = try_take_val(ap, op_hdr, SHORT, short_char_tmp, NULL, i, argv);
                 if (r < 0)
                         return r;
 
@@ -452,7 +451,7 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
                 *eq = '\0';
         }
 
-        op_hdr = lookup_long(ap, tok);
+        op_hdr = find_hdr_option(ap, tok);
         if (!op_hdr) {
                 _error(ap, "unknown option: --%s", tok);
                 return -EINVAL;
@@ -465,12 +464,12 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
 static int o_exists(struct argparser *ap, const char *longopt, const char *shortopt)
 {
         /* check exists */
-        if (longopt && lookup_long(ap, longopt)) {
+        if (longopt && find_hdr_option(ap, longopt)) {
                 WARNING("long option --%s already exists\n", longopt);
                 return -EINVAL;
         }
 
-        if (shortopt && lookup_short_str(ap, shortopt)) {
+        if (shortopt && find_hdr_option(ap, shortopt)) {
                 WARNING("short option -%s already exists\n", shortopt);
                 return -EINVAL;
         }
@@ -649,6 +648,12 @@ int argparser_addn(struct argparser *ap,
         op_hdr->_slot = result_slot;
         op_hdr->_cb = cb;
 
+        if (shortopt)
+                op_hdr->_short_len = strlen(shortopt);
+
+        if (longopt)
+                op_hdr->_long_len = strlen(longopt);
+
         /* builtin_option_add does NOT free ap or ap->opts on success or failure */
         r = builtin_option_add(ap, op_hdr);
         if (r != 0) {
@@ -685,7 +690,7 @@ void _argparser_builtin_mutual_exclude(struct argparser *ap, ...)
 
         va_start(va, ap);
         while ((slot = va_arg(va, struct option **)) != NULL) {
-                op_hdr = lookup_slot(ap, slot);
+                op_hdr = find_hdr_slot(ap, slot);
                 if (!op_hdr)
                         continue;
 
@@ -709,7 +714,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
         int cmd_argc = 0;
         char *cmd_argv[argc];
 
-        if (argc > 1 && (cmd = lookup_cmd(ap, argv[1])) != NULL) {
+        if (argc > 1 && (cmd = find_subcmd(ap, argv[1])) != NULL) {
                 i = 2; /* skip sub command */
                 cmd_argv[cmd_argc++] = argv[1];
         }
@@ -730,7 +735,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
                 if (tok[1] == '-') {
                         tok += 2;
 
-                        if (cmd && !lookup_long(ap, tok)) {
+                        if (cmd && !find_hdr_option(ap, tok)) {
                                 cmd_argv[cmd_argc++] = argv[i];
                                 continue;
                         }
@@ -744,7 +749,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
 
                 tok++; /* skip '-' */
 
-                if (cmd && (!lookup_short_str(ap, tok) || !lookup_short_char(ap, tok[0]))) {
+                if (cmd && !find_hdr_option(ap, tok)) {
                         cmd_argv[cmd_argc++] = argv[i];
                         continue;
                 }
@@ -791,28 +796,12 @@ const char *argparser_error(struct argparser *ap)
 /* Query an option with user input */
 struct option *argparser_has(struct argparser *ap, const char *name)
 {
-        size_t size;
         struct option_hdr *op_hdr;
 
-        size = strlen(name);
-
-        if (size > 1) {
-                op_hdr = lookup_long(ap, name);
-                if (op_hdr)
-                        goto found;
-
-                op_hdr = lookup_short_str(ap, name);
-                if (op_hdr)
-                        goto found;
-        }
-
-        op_hdr = lookup_short_char(ap, name[0]);
+        op_hdr = find_hdr_option(ap, name);
         if (op_hdr)
-                goto found;
+                return NULL;
 
-        return NULL;
-
-found:
         return *op_hdr->_slot ? &op_hdr->pub : NULL;
 }
 
