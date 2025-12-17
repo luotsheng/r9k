@@ -48,6 +48,7 @@ static int url_encode(struct argparser *ap)
         const char *url;
 
         url = argparser_val(ap, 0);
+        PANIC_IF(!url, "encode: no url arguments\n");
 
         for (p = (const unsigned char *) url; *p; p++)
                 len += is_unreserved(*p) ? 1 : 3;
@@ -85,6 +86,7 @@ static int url_decode(struct argparser *ap)
         const char *p, *url;
 
         url = argparser_val(ap, 0);
+        PANIC_IF(!url, "decode: no url arguments\n");
 
         out = malloc(strlen(url) + 1);
         if (!out)
@@ -114,17 +116,16 @@ static int url_decode(struct argparser *ap)
 
 static int url_query(struct argparser *ap)
 {
-        const char *s;
+        const char *url;
         const char *q;
         const char *end;
 
         __attr_ignore(ap);
 
-        s = argparser_val(ap, 0);
-        if (!s)
-                return 0;
+        url = argparser_val(ap, 0);
+        PANIC_IF(!url, "qs: no url arguments\n");
 
-        q = strchr(s, '?');
+        q = strchr(url, '?');
         if (!q || !*(q + 1))
                 return 0;
 
