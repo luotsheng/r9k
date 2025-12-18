@@ -11,7 +11,6 @@
 #include <stdbool.h>
 
 #define MIN_CAP 8 /* default */
-#define MAX_MSG 4096
 #define LONG    1
 #define SHORT   0
 
@@ -60,7 +59,7 @@ struct argparser
         struct argparser *cmd_tail;
 
         /* buff */
-        char error[MAX_MSG];
+        char error[1024];
         char *help;
         size_t helplen;
         size_t helpcap;
