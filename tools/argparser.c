@@ -1,9 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
- *
- * NOTE: This source file deos not depend on any third-party libraries,
- *       not even header files.
  */
 #include <r9k/argparser.h>
 #include <stdlib.h>
@@ -345,23 +342,36 @@ static int handle_short_assign(struct argparser *ap, char *tok, int *i, char *ar
 {
         int r = 0;
         char *eqval = NULL;
-        struct option_hdr *op_hdr;
+        struct option_hdr *op_hdr = NULL;
 
         char *eq = strchr(tok, '=');
         if (eq) {
                 eqval = eq + 1;
-                *eq = '\0';
+
+                size_t len = eq - tok;
+                char name[len + 1];
+                memcpy(name, tok, len);
+                name[len] = '\0';
+
+                op_hdr = find_hdr_option(ap, name);
+                if (op_hdr != NULL) {
+                        r = try_take_val(ap, op_hdr, SHORT, name, eqval, i, argv);
+                        return r < 0 ? r : 1;
+                }
+
+                if (eqval) {
+                        _error(ap, "unknown option: -%s", name);
+                        return AP_ERROR_UNKNOWN_OPT;
+                }
+
+                return r;
         }
 
+        /* no equal signs */
         op_hdr = find_hdr_option(ap, tok);
         if (op_hdr != NULL) {
                 r = try_take_val(ap, op_hdr, SHORT, tok, eqval, i, argv);
                 return r < 0 ? r : 1;
-        }
-
-        if (eqval) {
-                _error(ap, "unknown option: -%s", tok);
-                return AP_ERROR_UNKNOWN_OPT;
         }
 
         return r;
@@ -441,14 +451,28 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
 {
         int r;
         char *eqval = NULL;
-        struct option_hdr *op_hdr;
+        struct option_hdr *op_hdr = NULL;
 
         char *eq = strchr(tok, '=');
         if (eq) {
                 eqval = eq + 1;
-                *eq = '\0';
+
+                size_t len = eq - tok;
+                char name[len + 1];
+                memcpy(name, tok, len);
+                name[len] = '\0';
+
+                op_hdr = find_hdr_option(ap, name);
+                if (!op_hdr) {
+                        _error(ap, "unknown option: --%s", name);
+                        return AP_ERROR_UNKNOWN_OPT;
+                }
+
+                r = try_take_val(ap, op_hdr, LONG, name, eqval, i, argv);
+                return r < 0 ? r : 0;
         }
 
+        /* no equal signs */
         op_hdr = find_hdr_option(ap, tok);
         if (!op_hdr) {
                 _error(ap, "unknown option: --%s", tok);
@@ -712,6 +736,9 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
         char *tok = NULL;
         struct argparser *cmd = NULL;
         bool terminator = false;
+
+        if (argv == NULL)
+                return AP_ERROR_NO_MEMORY;
 
         /* sub command argv copy */
         int cmd_argc = 0;
