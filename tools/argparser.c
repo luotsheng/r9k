@@ -9,9 +9,9 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define INICAP  8 /* default */
 #define LONG    1
 #define SHORT   0
+#define INITCAP 16
 
 #define A_CMD   (1 << 1)
 #define A_RUN   (1 << 2)
@@ -32,12 +32,12 @@ struct _ptrvec
 
 static int _ptrvec_init(struct _ptrvec *p_vec)
 {
-        p_vec->items = calloc(INICAP, sizeof(void *));
+        p_vec->items = calloc(INITCAP, sizeof(void *));
         if (!p_vec->items)
                 return A_ERROR_NO_MEMORY;
 
         p_vec->count = 0;
-        p_vec->cap   = INICAP;
+        p_vec->cap   = INITCAP;
 
         return A_OK;
 }
@@ -48,10 +48,23 @@ static void _ptrvec_free(struct _ptrvec *vec)
                 free(vec->items);
 }
 
+static size_t _ptrvec_count(struct _ptrvec *vec)
+{
+        return vec->count;
+}
+
+static void *_ptrvec_fetch(struct _ptrvec *vec, size_t index)
+{
+        if (index >= vec->count)
+                return NULL;
+
+        return vec->items[index];
+}
+
 static int _ptrvec_push_back(struct _ptrvec *vec, void *items)
 {
         if (vec->count >= vec->cap) {
-                size_t newcap = vec->cap ? vec->cap * 2 : INICAP;
+                size_t newcap = vec->cap ? vec->cap * 2 : INITCAP;
                 void **newdata = realloc(vec->items, newcap * sizeof(void *));
                 if (!newdata)
                         return A_ERROR_NO_MEMORY;
@@ -61,14 +74,6 @@ static int _ptrvec_push_back(struct _ptrvec *vec, void *items)
 
         vec->items[vec->count++] = items;
         return 0;
-}
-
-static void *_ptrvec_fetch(struct _ptrvec *vec, size_t index)
-{
-        if (index >= vec->count)
-                return NULL;
-
-        return vec->items[index];
 }
 
 struct option_hdr
@@ -133,7 +138,7 @@ static struct argparser *find_subcmd(struct argparser *ap, const char *name)
 
 static struct option_hdr *find_hdr_slot(struct argparser *ap, struct option **slot)
 {
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 struct option_hdr *op_hdr = _ptrvec_fetch(&ap->opt_vec, i);
                 if (op_hdr->_slot == slot)
                         return op_hdr;
@@ -154,7 +159,7 @@ static struct option_hdr *find_hdr_option(struct argparser *ap, const char *name
         len = strlen(name);
         is_short_char = (name[1] == '\0');
 
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 struct option_hdr *op_hdr = _ptrvec_fetch(&ap->opt_vec, i);
 
                 lopt = op_hdr->view.longopt;
@@ -244,7 +249,7 @@ static struct option_hdr *is_mutual(struct argparser *ap, struct option_hdr *op_
         if (op_hdr->_mulid == 0)
                 return NULL;
 
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 ent = _ptrvec_fetch(&ap->opt_vec, i);
                 if (ent == op_hdr)
                         continue;
@@ -598,9 +603,10 @@ void argparser_free(struct argparser *ap)
         if (!ap)
                 return;
 
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 struct option_hdr *op_hdr = _ptrvec_fetch(&ap->opt_vec, i);
                 free(op_hdr->view.vals);
+                *op_hdr->_slot = NULL;
                 free(op_hdr);
         }
         _ptrvec_free(&ap->opt_vec);
@@ -652,6 +658,9 @@ int argparser_addn(struct argparser *ap,
         int r;
         struct option_hdr *op_hdr;
 
+        if (ap->stat_flags & A_RUN)
+                return A_ERROR_AFTER_RUN;
+
         check_warn_exists(ap, longopt, shortopt);
 
         /* Initialize the user option pointer to NULL,
@@ -661,8 +670,10 @@ int argparser_addn(struct argparser *ap,
         *result_slot = NULL;
 
         op_hdr = calloc(1, sizeof(*op_hdr));
-        if (!op_hdr)
+        if (!op_hdr) {
+                _error(ap, "after call argparser_run()");
                 return A_ERROR_NO_MEMORY;
+        }
 
         op_hdr->view.shortopt = shortopt;
         op_hdr->view.longopt = longopt;
@@ -679,7 +690,6 @@ int argparser_addn(struct argparser *ap,
         if (longopt)
                 op_hdr->_long_len = strlen(longopt);
 
-        /* builtin_option_add does NOT free ap or ap->opt_vec on success or failure */
         r = _ptrvec_push_back(&ap->opt_vec, op_hdr);
         if (r != 0) {
                 free(op_hdr);
@@ -694,7 +704,7 @@ static int ap_exec(struct argparser *ap)
         int r;
         struct option_hdr *op_hdr;
 
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 op_hdr = _ptrvec_fetch(&ap->opt_vec, i);
                 if (*op_hdr->_slot != NULL && op_hdr->_cb != NULL) {
                         r = op_hdr->_cb(ap, &op_hdr->view);
@@ -739,22 +749,27 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
 
         if (ap->stat_flags & A_RUN) {
                 _error(ap, "already call argparser_run()");
-                return A_ERROR_REPEATED_CALL;
+                r = A_ERROR_AFTER_RUN;
+                goto out;
         }
 
         /* mark already calls run */
         ap->stat_flags |= A_RUN;
 
-        if (argv == NULL)
-                return A_ERROR_NO_MEMORY;
+        if (argv == NULL) {
+                r = A_ERROR_NO_MEMORY;
+                goto out;
+        }
 
         /* sub command argv copy */
-        int cmd_argc = 0;
-        char *cmd_argv[argc];
+        struct _ptrvec argvec;
+        if ((r = _ptrvec_init(&argvec)) != A_OK)
+                goto out;
 
         if (argc > 1 && (cmd = find_subcmd(ap, argv[1])) != NULL) {
                 i = 2; /* skip sub command */
-                cmd_argv[cmd_argc++] = argv[1];
+                if ((r = _ptrvec_push_back(&argvec, argv[1])) != A_OK)
+                        goto out;
         }
 
         for (; i < argc; i++) {
@@ -774,13 +789,14 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
                         tok += 2;
 
                         if (cmd && find_hdr_option(cmd, tok)) {
-                                cmd_argv[cmd_argc++] = argv[i];
+                                if ((r = _ptrvec_push_back(&argvec, argv[i])) != A_OK)
+                                        goto out;
                                 continue;
                         }
 
                         r = handle_long(ap, &i, tok, argv);
                         if (r != 0)
-                                return r;
+                                goto out;
 
                         continue;
                 }
@@ -788,29 +804,30 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
                 tok++; /* skip '-' */
 
                 if (cmd && find_hdr_option(cmd, tok)) {
-                        cmd_argv[cmd_argc++] = argv[i];
+                        if ((r = _ptrvec_push_back(&argvec, argv[i])) != A_OK)
+                                goto out;
                         continue;
                 }
 
                 r = handle_short(ap, &i, tok, argv);
                 if (r != 0)
-                        return r;
+                        goto out;
         }
 
         /* if include cmd parsing for sub command. */
         if (cmd) {
-                if ((r = _argparser_run0(cmd, cmd_argc, cmd_argv)) != 0) {
+                if ((r = _argparser_run0(cmd, _ptrvec_count(&argvec), (char **) argvec.items)) != 0) {
                         memcpy(ap->error, cmd->error, sizeof(ap->error));
-                        return r;
+                        goto out;
                 }
                 cmd->cmd_callback(cmd);
         }
 
         r = ap_exec(ap);
-        if (r != 0)
-                return r;
 
-        return 0;
+out:
+        _ptrvec_free(&argvec);
+        return r;
 }
 
 int argparser_run(struct argparser *ap, int argc, char *argv[])
@@ -845,15 +862,15 @@ struct option *argparser_has(struct argparser *ap, const char *name)
 
 uint32_t argparser_count(struct argparser *ap)
 {
-        return ap->posval_vec.count;
+        return _ptrvec_count(&ap->posval_vec);
 }
 
 const char *argparser_val(struct argparser *ap, uint32_t index)
 {
-        if (index >= ap->posval_vec.count)
+        if (index >= _ptrvec_count(&ap->posval_vec))
                 return NULL;
 
-        return ap->posval_vec.items[index];
+        return _ptrvec_fetch(&ap->posval_vec, index);
 }
 
 __attribute__((format(printf, 2, 3)))
@@ -921,7 +938,7 @@ const char *argparser_help(struct argparser *ap)
                 _append_help(ap, "Options:\n");
         }
 
-        for (uint32_t i = 0; i < ap->opt_vec.count; i++) {
+        for (uint32_t i = 0; i < _ptrvec_count(&ap->opt_vec); i++) {
                 op_hdr = _ptrvec_fetch(&ap->opt_vec, i);
                 char opt_buf[128] = "";
                 int pos = 0;

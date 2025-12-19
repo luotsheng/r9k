@@ -75,7 +75,7 @@
 #define A_ERROR_NULL_ARGPARSER  -0x0012
 #define A_ERROR_SUBCOMMAND_CALL -0x0013
 #define A_ERROR_NO_ARG_ACCEPT   -0x0014
-#define A_ERROR_REPEATED_CALL   -0x0015
+#define A_ERROR_AFTER_RUN       -0x0015
 
 #define A_CALLBACK_HELP _argparser_builtin_callback_help
 #define A_CALLBACK_VERSION _argparser_builtin_callback_version
