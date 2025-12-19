@@ -675,7 +675,7 @@ int _argparse_addn_impl(struct argparse *ap,
         return r;
 }
 
-static int ap_exec(struct argparse *ap)
+static int callback_exec(struct argparse *ap)
 {
         int r;
         struct option_hdr *op_hdr;
@@ -800,7 +800,7 @@ static int _builtin_argparse_run(struct argparse *ap, int argc, char *argv[]) //
                 cmd->cmd_callback(cmd);
         }
 
-        r = ap_exec(ap);
+        r = callback_exec(ap);
 
 out:
         ptrvec_free(&arg_vec);
