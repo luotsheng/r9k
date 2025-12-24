@@ -83,6 +83,7 @@ struct option_hdr
         size_t _long_len;
         uint32_t _valcap;
         struct option** _slot; /* if an input option using _slot writes back the pointer. */
+        struct option *_self_ptr; /* if _slot is NULL, use _self_ptr */
         argparse_callback_t _cb;
         uint32_t _maxval;
         uint32_t _flags;
@@ -668,17 +669,19 @@ int argparse_addn(struct argparse *ap,
 
         check_warn_exists(ap, longopt, shortopt);
 
-        /* Initialize the user option pointer to NULL,
-         * If the user provides this option in command line,
-         * the pointer will be updated to point to the actual option object.
-         * WARNING: This pointer becomes invalid after argparse_free(). */
-        *result_slot = NULL;
-
         op_hdr = calloc(1, sizeof(*op_hdr));
         if (!op_hdr) {
                 error_rec(ap, "out of memory");
                 return A_ERROR_NO_MEMORY;
         }
+
+        /* Initialize the user option pointer to NULL,
+         * If the user provides this option in command line,
+         * the pointer will be updated to point to the actual option object.
+         * WARNING: This pointer becomes invalid after argparse_free(). */
+        if (!result_slot)
+                result_slot = &op_hdr->_self_ptr;
+        *result_slot = NULL;
 
         op_hdr->view.shortopt = shortopt;
         op_hdr->view.longopt = longopt;
