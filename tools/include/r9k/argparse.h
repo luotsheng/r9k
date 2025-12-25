@@ -28,12 +28,15 @@
  * int main(int argc, char *argv[])
  * {
  *      struct argparse *ap;
- *      struct option    *std;
+ *      struct option   *std;
  *
  *      ap = argparse_create("gcc", "1.0");
  *      if (!ap) {
  *              exit(0);
  *      }
+ *
+ *      // Set std point to NULL.
+ *      argparse_add1(ap, &std, "std", "standard", "switch std", "C17|C23", NULL, 0);
  *
  *      if (argparse_run(ap, argc, argv) != 0)
  *              die(argparse_error(ap));
