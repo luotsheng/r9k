@@ -5,6 +5,7 @@
 #ifndef MEM_H_
 #define MEM_H_
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <r9k/compiler_attrs.h>
 
