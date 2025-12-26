@@ -211,7 +211,7 @@ static int store_option_val(struct argparse *ap,
 {
         if (op_hdr->view.nval > op_hdr->_maxval) {
                 error_rec(ap, "%s%s option value out of %d", OPT_PREFIX(is_long), tok, op_hdr->_maxval);
-                return A_ERROR_TOO_MANY_VAL;
+                return A_ERROR_CONSTRAINT_MULTI_VAL;
         }
 
         if (!op_hdr->view.vals) {
@@ -283,7 +283,7 @@ static int try_take_val(struct argparse *ap,
                                OPT_PREFIX(is_long), tok,
                                multual_hdr->view.shortopt ? "-" : "--",
                                multual_hdr->view.shortopt ? multual_hdr->view.shortopt : multual_hdr->view.longopt);
-                        return A_ERROR_CONFLICT;
+                        return A_ERROR_CONSTRAINT_CONFLICT;
                 }
 
         }
@@ -291,12 +291,12 @@ static int try_take_val(struct argparse *ap,
         if (op_hdr->_maxval == 0) {
                 if (op_hdr->_flags & O_REQUIRED) {
                         error_rec(ap, "option %s%s flag required a value, but max capacity is zero", OPT_PREFIX(is_long), tok);
-                        return A_ERROR_REQUIRED_VAL;
+                        return A_ERROR_CONFIG;
                 }
 
                 if (external_val) {
                         error_rec(ap, "option %s%s does not consume value, cause max capacity is zero", OPT_PREFIX(is_long), tok);
-                        return A_ERROR_NO_ARG_ACCEPT;
+                        return A_ERROR_CONSTRAINT_NO_ARGUMENTS;
                 }
                 return 0;
         }
@@ -313,7 +313,7 @@ static int try_take_val(struct argparse *ap,
                 if (!val || val[0] == '-') {
                         if ((op_hdr->_flags & O_REQUIRED) && op_hdr->view.nval == 0) {
                                 error_rec(ap, "option %s%s missing required values", OPT_PREFIX(is_long), tok);
-                                return A_ERROR_REQUIRED_VAL;
+                                return A_ERROR_CONSTRAINT_MISSING_VALUE;
                         }
                         break;
                 }
@@ -362,7 +362,7 @@ static int handle_short_assign(struct argparse *ap, char *tok, int *i, char *arg
                 size_t len = eq - tok;
                 if (len == 0) {
                         error_rec(ap, "invalid option syntax: -%s (empty option name)", tok);
-                        return A_ERROR_INVALID_ARG;
+                        return A_ERROR_SYNTAX_INVALID;
                 }
 
                 eqval = eq + 1;
@@ -378,7 +378,7 @@ static int handle_short_assign(struct argparse *ap, char *tok, int *i, char *arg
 
                 if (eqval) {
                         error_rec(ap, "unknown option: -%s", name);
-                        return A_ERROR_UNKNOWN_OPT;
+                        return A_ERROR_SYNTAX_UNKNOWN_OPTION;
                 }
 
                 return r;
@@ -408,22 +408,22 @@ static int handle_short_group(struct argparse *ap, char *tok, int *i, char *argv
                 op_hdr = find_hdr_option(ap, short_char_tmp);
                 if (!op_hdr) {
                         error_rec(ap, "unknown option: -%c", tok[k]);
-                        return A_ERROR_UNKNOWN_OPT;
+                        return A_ERROR_SYNTAX_UNKNOWN_OPTION;
                 }
 
                 if (op_hdr->_flags & O_CONCAT) {
                         error_rec(ap, "invalid option -%c cannot be in a group", tok[k]);
-                        return A_ERROR_INVALID_GROUP;
+                        return A_ERROR_CONSTRAINT_INVALID_GROUP;
                 }
 
                 if (op_hdr->_flags & O_NOGROUP) {
                         error_rec(ap, "option -%c cannot be used as a group", tok[k]);
-                        return A_ERROR_INVALID_GROUP;
+                        return A_ERROR_CONSTRAINT_INVALID_GROUP;
                 }
 
                 if (has_val && op_hdr->_maxval > 0) {
                         error_rec(ap, "option -%c does not accept a value, cause option -%c already acceped", tok[k], has_val_opt);
-                        return A_ERROR_MULTI_VAL_OPTS;
+                        return A_ERROR_CONSTRAINT_MULTI_VAL;
                 }
 
                 short_char_tmp[0] = tok[k];
@@ -482,7 +482,7 @@ static int handle_long(struct argparse *ap, int *i, char *tok, char *argv[])
                 op_hdr = find_hdr_option(ap, name);
                 if (!op_hdr) {
                         error_rec(ap, "unknown option: --%s", name);
-                        return A_ERROR_UNKNOWN_OPT;
+                        return A_ERROR_SYNTAX_UNKNOWN_OPTION;
                 }
 
                 r = try_take_val(ap, op_hdr, true, name, eqval, i, argv);
@@ -493,7 +493,7 @@ static int handle_long(struct argparse *ap, int *i, char *tok, char *argv[])
         op_hdr = find_hdr_option(ap, tok);
         if (!op_hdr) {
                 error_rec(ap, "unknown option: --%s", tok);
-                return A_ERROR_UNKNOWN_OPT;
+                return A_ERROR_SYNTAX_UNKNOWN_OPTION;
         }
 
         r = try_take_val(ap, op_hdr, true, tok, eqval, i, argv);
@@ -590,13 +590,13 @@ int argparse_cmd(struct argparse *parent,
                  argparse_cmd_callback_t cb)
 {
         if (!parent)
-                return A_ERROR_NULL_PARENT;
+                return A_ERROR_CONFIG_NULL_PARENT;
 
         struct argparse *ap;
 
         ap = argparse_create(name, parent->version);
         if (!ap)
-                return A_ERROR_CREATE_FAIL;
+                return A_ERROR_NO_MEMORY;
 
         ap->_stat_flags |= A_STAT_CMD;
         ap->cmd_desc = desc;
@@ -654,7 +654,7 @@ int argparse_addn(struct argparse *ap,
 
         if (ap->_stat_flags & A_STAT_RUN) {
                 error_rec(ap, "after call argparse_run()");
-                return A_ERROR_ALREADY_RUN;
+                return A_ERROR_CONFIG_ALREADY_RUN;
         }
 
         check_warn_exists(ap, longopt, shortopt);
@@ -707,7 +707,7 @@ static int callback_exec(struct argparse *ap)
                 if (*op_hdr->_slot != NULL && op_hdr->_cb != NULL) {
                         r = op_hdr->_cb(ap, &op_hdr->view);
                         if (r != 0)
-                                return A_ERROR_CALLBACK_FAIL;
+                                return A_ERROR_RUNTIME_CALLBACK_FAIL;
                 }
         }
 
@@ -741,7 +741,7 @@ static int _argparse_sync_stat(struct argparse *ap)
 {
         if (ap->_stat_flags & A_STAT_RUN) {
                 error_rec(ap, "already call argparse_run()");
-                return A_ERROR_ALREADY_RUN;
+                return A_ERROR_CONFIG_ALREADY_RUN;
         }
 
         /* mark already calls run */
@@ -800,7 +800,7 @@ static int _argparse_dispatch(struct argparse *ap,
 
                 if (strlen(tok) == 0) {
                         error_rec(ap, "empty short option name");
-                        return A_ERROR_INVALID_OPT;
+                        return A_ERROR_SYNTAX_INVALID;
                 }
 
                 if (cmd && find_hdr_option(cmd, tok)) {
@@ -826,7 +826,7 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
         _argparse_sync_stat(ap);
 
         if (!ap || !argv || argc <= 0)
-                return A_ERROR_INVALID_ARG;
+                return A_ERROR_CONFIG_INVALID;
 
         /* sub command argv copy */
         struct ptrvec args_copy;
@@ -871,11 +871,11 @@ out:
 int argparse_run(struct argparse *ap, int argc, char *argv[])
 {
         if (!ap)
-                return A_ERROR_NULL_ARGPARSER;
+                return A_ERROR_CONFIG_NULL_PARSER;
 
         if (ap->_stat_flags & A_STAT_CMD) {
                 error_rec(ap, "not allow sub argparse call argparse_run()");
-                return A_ERROR_SUBCOMMAND_CALL;
+                return A_ERROR_RUNTIME_CALLBACK_FAIL;
         }
 
         return _argparse_run(ap, argc, argv);

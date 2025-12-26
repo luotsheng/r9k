@@ -59,26 +59,35 @@
 #include <stdint.h>
 
 /* option flags */
-#define O_REQUIRED              (1 << 1) /* required value */
-#define O_CONCAT                (1 << 2) /* allow arguments like: -O1 -O2 */
-#define O_NOGROUP               (1 << 3) /* not allow a group */
+#define O_REQUIRED                           (1 << 1) /* required value */
+#define O_CONCAT                             (1 << 2) /* allow arguments like: -O1 -O2 */
+#define O_NOGROUP                            (1 << 3) /* not allow a group */
 
-#define A_ERROR_REQUIRED_VAL    (  -101) /* option required value */
-#define A_ERROR_UNKNOWN_OPT     (  -102) /* unknown options */
-#define A_ERROR_TOO_MANY_VAL    (  -103) /* option too many values */
-#define A_ERROR_CONFLICT        (  -104) /* option conflict */
-#define A_ERROR_NO_MEMORY       (  -105) /* allocate memory failed */
-#define A_ERROR_INVALID_GROUP   (  -106) /* invalid option group */
-#define A_ERROR_MULTI_VAL_OPTS  (  -107) /* multiple consumes option in the group */
-#define A_ERROR_NULL_PARENT     (  -108) /* sub command no parent */
-#define A_ERROR_CREATE_FAIL     (  -109) /* create argparse fail */
-#define A_ERROR_CALLBACK_FAIL   (  -110) /* callback execute fail */
-#define A_ERROR_NULL_ARGPARSER  (  -111) /* null argparse instance */
-#define A_ERROR_SUBCOMMAND_CALL (  -112) /* call subcommand error */
-#define A_ERROR_NO_ARG_ACCEPT   (  -113) /* equal signs need value */
-#define A_ERROR_ALREADY_RUN     (  -114) /* double call argparse_run() */
-#define A_ERROR_INVALID_ARG     (  -115) /* invalid arguments */
-#define A_ERROR_INVALID_OPT     (  -116) /* invalid option */
+/* error code */
+#define A_ERROR_NO_MEMORY                    (  -100) /* allocate memory failed */
+#define A_ERROR_NULL_POINTER                 (  -101) /* null pointer */
+
+#define A_ERROR_SYNTAX                       (  -200) /* syntax error */
+#define A_ERROR_SYNTAX_UNKNOWN_OPTION        (  -201) /* unknown option */
+#define A_ERROR_SYNTAX_INVALID               (  -202) /* invalid option syntax */
+#define A_ERROR_SYNTAX_ASSIGNMENT            (  -203) /* invalid assignment syntax */
+
+#define A_ERROR_CONSTRAINT                   (  -300) /* constraint violation */
+#define A_ERROR_CONSTRAINT_CONFLICT          (  -301) /* mutual exclusion conflict */
+#define A_ERROR_CONSTRAINT_VALUE_LIMIT       (  -302) /* exceeds maximum values */
+#define A_ERROR_CONSTRAINT_INVALID_GROUP     (  -303) /* invalid option group */
+#define A_ERROR_CONSTRAINT_MULTI_VAL         (  -304) /* multiple value-consuming options in group */
+#define A_ERROR_CONSTRAINT_MISSING_VALUE     (  -305) /* option missing required value */
+#define A_ERROR_CONSTRAINT_NO_ARGUMENTS      (  -306) /* option does not accept arguments */
+
+#define A_ERROR_RUNTIME                      (  -400) /* runtime error */
+#define A_ERROR_RUNTIME_CALLBACK_FAIL        (  -401) /* callback execution failed */
+
+#define A_ERROR_CONFIG                       (  -500) /* configuration error */
+#define A_ERROR_CONFIG_NULL_PARSER           (  -501) /* null argparse instance */
+#define A_ERROR_CONFIG_NULL_PARENT           (  -502) /* null parent for subcommand */
+#define A_ERROR_CONFIG_ALREADY_RUN           (  -503) /* argparse_run already called */
+#define A_ERROR_CONFIG_INVALID               (  -504) /* invalid configuration arguments */
 
 struct argparse;
 struct option;
