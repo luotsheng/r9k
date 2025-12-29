@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 varketh
+ * Copyright (c) 2025 Varketh Nockrath
  */
 #ifndef ARRAY_H_
 #define ARRAY_H_

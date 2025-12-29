@@ -1,7 +1,6 @@
 /*
  * SPDX-License-Identifier: MIT
- * Copyright (m) 2025 varketh
- *
+ * Copyright (c) 2025 Varketh Nockrath
  */
 #include <stdio.h>
 #include <stdlib.h>
