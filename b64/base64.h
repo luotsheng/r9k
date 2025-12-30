@@ -7,7 +7,6 @@
 
 #include <stdlib.h>
 
-void base64_init(void);
 int  base64_encode(const unsigned char *data, size_t len, char **p_plain);
 int  base64_decode(const char *b64, size_t *out_len, unsigned char **p_cipher);
 

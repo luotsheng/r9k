@@ -12,8 +12,9 @@ static const char b64_map[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static signed char b64_rev[256];
+static int b64_initialized = 0;
 
-void base64_init(void)
+static void base64_init(void)
 {
 	memset(b64_rev, -1, sizeof(b64_rev));
 
@@ -27,6 +28,8 @@ void base64_init(void)
 
 	b64_rev['+'] = 62;
 	b64_rev['/'] = 63;
+
+	b64_initialized = 1;
 }
 
 int base64_encode(const unsigned char *data, size_t len, char **p_plain)
@@ -59,6 +62,9 @@ int base64_encode(const unsigned char *data, size_t len, char **p_plain)
 
 int base64_decode(const char *b64, size_t *out_len, unsigned char **p_cipher)
 {
+	if (!b64_initialized)
+		base64_init();
+
 	size_t len = strlen(b64);
 	size_t alloc = len / 4 * 3;
 	unsigned char *out;

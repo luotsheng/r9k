@@ -90,8 +90,6 @@ static int decode(struct argparse *ap, struct option *e)
 
 int main(int argc, char* argv[])
 {
-	base64_init();
-
         struct argparse *ap;
         struct option *e, *d, *u;
 
