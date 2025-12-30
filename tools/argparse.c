@@ -1016,7 +1016,7 @@ const char *argparse_help(struct argparse *ap)
 
         _append_help(ap, "\n");
 
-        if (!(ap->_stat_flags & A_STAT_CMD)) {
+        if (!(ap->_stat_flags & A_STAT_CMD) && ap->cmd_next) {
                 _append_help(ap, "Run `%s <command> --help` for more information.", ap->name);
         } else {
                 _append_help(ap, "Run `%s --help` for more information.", ap->name);
