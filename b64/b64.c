@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <errno.h>
 #include <r9k/argparse.h>
 #include <r9k/panic.h>
 #include <r9k/ioutils.h>
@@ -17,10 +17,18 @@ static int encode(struct argparse *ap, struct option *e)
 {
         __attr_ignore(e);
 
+	struct option *output = argparse_has(ap, "o");
+	struct option *file = argparse_has(ap, "f");
+
 	char *origin = NULL;
         const char *plain = argparse_val(ap, 0);
-	if (!plain) {
-		origin = readall(stdin);
+	if (!file && !plain) {
+		origin = readin();
+		plain = trim(origin);
+	}
+
+	if (file) {
+		origin = readfile(file->sval);
 		plain = trim(origin);
 	}
 
@@ -37,7 +45,12 @@ static int encode(struct argparse *ap, struct option *e)
 		}
 	}
 
-        printf("%s\n", cipher);
+	if (output) {
+		writefile(output->sval, "w+", cipher, strlen(cipher));
+	} else {
+		printf("%s\n", cipher);
+	}
+
         free(cipher);
 
 	if (origin)
@@ -50,10 +63,18 @@ static int decode(struct argparse *ap, struct option *e)
 {
 	__attr_ignore(e);
 
+	struct option *output = argparse_has(ap, "o");
+	struct option *file = argparse_has(ap, "f");
+
 	char *origin = NULL;
 	const char *srcptr = argparse_val(ap, 0);
-	if (!srcptr) {
-		origin = readall(stdin);
+	if (!file && !srcptr) {
+		origin = readin();
+		srcptr = trim(origin);
+	}
+
+	if (file) {
+		origin = readfile(file->sval);
 		srcptr = trim(origin);
 	}
 
@@ -85,8 +106,14 @@ static int decode(struct argparse *ap, struct option *e)
 	size_t size;
 	unsigned char *plain = base64_decode(cipher, &size);
 	PANIC_IF(!plain, "error: invalid base64\n");
-	fwrite(plain, 1, size, stdout);
-	putchar('\n');
+
+	if (output) {
+		if (writefile(output->sval, "w+", plain, size) < 0)
+			PANIC("error: cannot write to %s, cause: %s\n", output->sval, strerror(errno));
+	} else {
+		fwrite(plain, 1, size, stdout);
+		putchar('\n');
+	}
 
 	free(cipher);
 	free(plain);
@@ -100,15 +127,16 @@ static int decode(struct argparse *ap, struct option *e)
 int main(int argc, char* argv[])
 {
         struct argparse *ap;
-        struct option *e, *d, *u;
+        struct option *e, *d;
 
         ap = argparse_create("b64", "1.0");
         PANIC_IF(!ap, "error: argparse initialize failed");
 
-        argparse_add0(ap, &e, "e", NULL, "encode", encode, 0);
-        argparse_add0(ap, &d, "d", NULL, "decode", decode, 0);
-        argparse_add0(ap, &u, "u", NULL, "url safe", NULL, 0);
-        argparse_add1(ap, &u, "o", NULL, "output file", "PATH", NULL, O_REQUIRED);
+        argparse_add0(ap, &e,   "e", NULL, "encode", encode, 0);
+        argparse_add0(ap, &d,   "d", NULL, "decode", decode, 0);
+        argparse_add0(ap, NULL, "u", NULL, "url safe", NULL, 0);
+	argparse_add1(ap, NULL, "f", NULL, "read in file", "PATH", NULL, O_REQUIRED);
+        argparse_add1(ap, NULL, "o", NULL, "output file", "PATH", NULL, O_REQUIRED | O_NOGROUP);
 
         argparse_mutual_exclude(ap, &e, &d);
 

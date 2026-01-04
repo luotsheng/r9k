@@ -13,6 +13,7 @@
 char *readall(FILE *fp);
 char *readfile(const char *path);
 char *readin();
+ssize_t writefile(const char *path, const char *mode, const void *data, size_t size);
 
 #pragma GCC diagnostic pop
 #endif /* IO_UTILS_H_ */

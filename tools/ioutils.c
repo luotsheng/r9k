@@ -6,8 +6,9 @@
 //std
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
-char *readall(FILE *fp)
+char *readall(FILE *stream)
 {
         char *buf = NULL;
         char *tmp;
@@ -16,7 +17,7 @@ char *readall(FILE *fp)
         char chunk[4096];
         size_t n;
 
-        while ((n = fread(chunk, 1, sizeof(chunk), fp)) > 0) {
+        while ((n = fread(chunk, 1, sizeof(chunk), stream)) > 0) {
                 if (len + n + 1 > cap) {
                         cap = cap ? cap + (cap >> 1) : sizeof(chunk) * 2;
                         if (cap < len + n + 1)
@@ -45,14 +46,14 @@ char *readall(FILE *fp)
 char *readfile(const char *path)
 {
         char *buf;
-        FILE *fp;
+        FILE *stream;
 
-        fp = fopen(path, "r");
-        if (!fp)
+        stream = fopen(path, "r");
+        if (!stream)
                 return NULL;
 
-        buf = readall(fp);
-        fclose(fp);
+        buf = readall(stream);
+        fclose(stream);
 
         return buf;
 }
@@ -60,4 +61,26 @@ char *readfile(const char *path)
 char *readin()
 {
         return readall(stdin);
+}
+
+ssize_t writefile(const char *path, const char *mode, const void *data, size_t size)
+{
+        if (!path || !mode || !data) {
+                errno = EINVAL;
+                return -1;
+        }
+
+        FILE *stream = fopen(path, mode);
+        if (!stream)
+                return -1;
+
+        size_t r = fwrite(data, 1, size, stream);
+
+        if (ferror(stream)) {
+                fclose(stream);
+                return -1;
+        }
+
+        fclose(stream);
+        return r;
 }
