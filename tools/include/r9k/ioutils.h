@@ -12,7 +12,7 @@
 
 char *readall(FILE *fp);
 char *readfile(const char *path);
-char *readin();
+char *readin(void);
 ssize_t writefile(const char *path, const char *mode, const void *data, size_t size);
 
 #pragma GCC diagnostic pop
