@@ -111,7 +111,7 @@ static int decode(struct argparse *ap, struct option *e)
 		if (writefile(output->sval, plain, size) < 0)
 			PANIC("error: cannot write to %s, cause: %s\n", output->sval, strerror(errno));
 	} else {
-		fwrite(plain, 1, size, stdout);
+		dump(stdout, plain, size);
 		putchar('\n');
 	}
 
