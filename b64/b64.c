@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <r9k/argparse.h>
 #include <r9k/panic.h>
-#include <r9k/io.h>
+#include <r9k/io_utils.h>
 #include <r9k/string.h>
 
 #include "base64.h"

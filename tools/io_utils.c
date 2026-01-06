@@ -2,7 +2,7 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 Varketh Nockrath
  */
-#include <r9k/io.h>
+#include <r9k/io_utils.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
