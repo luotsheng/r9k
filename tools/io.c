@@ -4,51 +4,72 @@
  */
 #include <r9k/io.h>
 #include <stdlib.h>
-#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include <errno.h>
+#define N_TRACE
+#include <r9k/trace.h>
 
-void *slurp(FILE *stream, size_t *p_size)
+#define BUFFSIZE 8192
+
+void *slurp(int fd, size_t *p_size)
 {
+        if (fd < 0)
+                return NULL;
+
         uint8_t *buf = NULL;
-        uint8_t *tmp;
-        size_t len = 0;
+        uint8_t *tmp = NULL;
         size_t cap = 0;
-        uint8_t chunk[4096];
-        size_t n;
+        size_t len = 0;
+        ssize_t n = 0;
 
-        while ((n = fread(chunk, 1, sizeof(chunk), stream)) > 0) {
-                if (len + n > cap) {
-                        cap = cap ? cap * 2 : sizeof(chunk);
-                        if (cap < len + n)
-                                cap = len + n;
+        cap = BUFFSIZE;
+        buf = (uint8_t *) malloc(cap);
+        if (!buf) {
+                errno = ENOMEM;
+                return NULL;
+        }
 
-                        tmp = realloc(buf, cap + 1);
-                        if (!tmp) {
-                                if (buf)
-                                        free(buf);
+        while (1) {
+                if (len >= cap) {
+                        cap = cap * 2;
+
+                        if (cap <= len || cap > SIZE_MAX / 2) {
+                                free(buf);
                                 errno = ENOMEM;
                                 return NULL;
                         }
+
+                        tmp = realloc(buf, cap);
+                        if (!tmp) {
+                                free(buf);
+                                errno = ENOMEM;
+                                return NULL;
+                        }
+
                         buf = tmp;
                 }
-                memcpy(buf + len, chunk, n);
-                len += n;
-        }
 
-        if (ferror(stream)) {
+                n = read(fd, buf + len, cap - len);
+
+                if (n > 0) {
+                        len += n;
+                        continue;
+                }
+
+                if (n == 0)
+                        break;
+
+                if (n == -1 && errno == EINTR)
+                        continue;
+
                 free(buf);
                 return NULL;
         }
 
-        if (!buf) {
-                buf = malloc(1);
-                if (!buf) {
-                        errno = ENOMEM;
-                        return NULL;
-                }
-        }
-
-        buf[len] = '\0';
+        tmp = realloc(buf, len);
+        if (tmp)
+                buf = tmp;
 
         if (p_size)
                 *p_size = len;
@@ -56,59 +77,122 @@ void *slurp(FILE *stream, size_t *p_size)
         return buf;
 }
 
-int dump(FILE *stream, const void *data, size_t size)
+ssize_t dump(int fd, const void *data, size_t size)
 {
+        if (fd < 0 || !data) {
+                errno = EINVAL;
+                return -1;
+        }
+
         if (size == 0)
                 return 0;
 
+        ssize_t n;
+        size_t written = 0;
+
+        while (written < size) {
+                n = write(fd, (const uint8_t *) data + written, size - written);
+
+                if (n > 0) {
+                        written += n;
+                        continue;
+                }
+
+                if (n == -1 && errno == EINTR)
+                        continue;
+
+                return -1;
+        }
+
+        return written;
+}
+
+void *fslurp(FILE *stream, size_t *size)
+{
+        if (!stream) {
+                errno = EINVAL;
+                return NULL;
+        }
+
+        return slurp(fileno(stream), size);
+}
+
+ssize_t fdump(FILE *stream, const void *data, size_t size)
+{
         if (!stream || !data) {
                 errno = EINVAL;
                 return -1;
         }
 
-        const unsigned char *ptr = data;
-
-        size_t written = 0;
-        while (written < size) {
-                size_t n = fwrite(ptr + written, 1, size - written, stream);
-                if (n == 0) {
-                        if (ferror(stream))
-                                errno = EIO;
-                        return -1;
-                }
-                written += n;
-        }
-
-        return 0;
+        return dump(fileno(stream), data, size);
 }
 
-void *readfile(const char *filename, size_t *p_size)
+char *readfile(FILE *stream)
 {
-        void *buf;
-        FILE *stream;
+        if (!stream) {
+                errno = EINVAL;
+                return NULL;
+        }
 
-        stream = fopen(filename, "rb");
+        char *buf;
+        size_t size;
+
+        buf = fslurp(stream, &size);
+        if (!buf)
+                return NULL;
+
+        char *tmp = realloc(buf, size + 1);
+        if (!tmp) {
+                free(buf);
+                return NULL;
+        }
+
+        buf = tmp;
+        buf[size] = '\0';
+
+        return buf;
+}
+
+ssize_t writefile(FILE *stream, const void *data, size_t size)
+{
+        if (!stream || !data) {
+                errno = EINVAL;
+                return -1;
+        }
+
+        if (size == 0)
+                return 0;
+
+        return fdump(stream, data, size);
+}
+
+char *readpath(const char *filename)
+{
+        FILE *stream = fopen(filename, "rb");
         if (!stream)
                 return NULL;
 
-        buf = slurp(stream, p_size);
+        char *buf = readfile(stream);
         fclose(stream);
 
         return buf;
 }
 
-int writefile(const char *filename, const void *data, size_t size)
+ssize_t writepath(const char *filename, const void *data, size_t size)
 {
-        if (!filename || !data) {
+        if (!data) {
                 errno = EINVAL;
                 return -1;
         }
+
+        if (size == 0)
+                return 0;
 
         FILE *stream = fopen(filename, "wb");
         if (!stream)
                 return -1;
 
-        int r = dump(stream, data, size);
+        ssize_t r = writefile(stream, data, size);
         fclose(stream);
 
         return r;

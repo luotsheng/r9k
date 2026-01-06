@@ -18,7 +18,7 @@ static int print_callback(struct argparse *ap, struct option *opt)
         if (!fp)
                 PANIC("error: popen() failed\n");
 
-        char *buf = slurp(fp, NULL);
+        char *buf = readfile(fp);
         if (buf) {
                 printf("%s", buf);
                 free(buf);
@@ -37,7 +37,7 @@ static void clipboard_write(struct argparse *ap)
         if (!fp)
                 PANIC("error: popen() failed\n");
 
-        char *buf = slurp(stdin, NULL);
+        char *buf = readfile(stdin);
         if (!buf)
                 PANIC("error: realall() failed\n");
 

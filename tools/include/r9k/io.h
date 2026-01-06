@@ -7,9 +7,13 @@
 
 #include <stdio.h>
 
-void *slurp(FILE *stream, size_t *p_size);
-int   dump(FILE *stream, const void *data, size_t size);
-void *readfile(const char *filename, size_t *p_size);
-int   writefile(const char *filename, const void *data, size_t size);
+void *slurp(int fd, size_t *p_size);
+ssize_t dump(int fd, const void *data, size_t size);
+void *fslurp(FILE *stream, size_t *size);
+ssize_t fdump(FILE *stream, const void *data, size_t size);
+char *readfile(FILE *stream);
+ssize_t writefile(FILE *stream, const void *data, size_t size);
+char *readpath(const char *filename);
+ssize_t writepath(const char *filename, const void *data, size_t size);
 
 #endif /* IO_UTILS_H_ */
