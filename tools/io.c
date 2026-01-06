@@ -197,3 +197,58 @@ ssize_t writepath(const char *filename, const void *data, size_t size)
 
         return r;
 }
+
+ssize_t readall(int fd, void *buf, size_t size)
+{
+        if (fd < 0 || !buf) {
+                errno = EINVAL;
+                return -1;
+        }
+
+        size_t n = 0;
+
+        while (n < size) {
+                ssize_t r = read(fd, (uint8_t *) buf + n, size - n);
+
+                if (r > 0) {
+                        n += r;
+                        continue;
+                }
+
+                if (r == 0)
+                        break;
+
+                if (r == -1 && errno == EINTR)
+                        continue;
+
+                return r;
+        }
+
+        return n;
+}
+
+ssize_t writeall(int fd, const void *buf, size_t size)
+{
+        if (fd < 0 || !buf) {
+                errno = EINVAL;
+                return -1;
+        }
+
+        size_t n = 0;
+
+        while (n < size) {
+                ssize_t r = write(fd, (uint8_t *) buf + n, size - n);
+
+                if (r > 0) {
+                        n += r;
+                        continue;
+                }
+
+                if (r == -1 && errno == EINTR)
+                        continue;
+
+                return r;
+        }
+
+        return n;
+}

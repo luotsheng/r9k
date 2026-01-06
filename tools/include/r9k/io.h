@@ -15,5 +15,7 @@ char *readfile(FILE *stream);
 ssize_t writefile(FILE *stream, const void *data, size_t size);
 char *readpath(const char *filename);
 ssize_t writepath(const char *filename, const void *data, size_t size);
+ssize_t readall(int fd, void *buf, size_t size);
+ssize_t writeall(int fd, const void *buf, size_t size);
 
 #endif /* IO_UTILS_H_ */
