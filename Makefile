@@ -7,7 +7,7 @@ BINDIR    := $(BUILDDIR)/bin
 INCLUDES  := -I../include -I../tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
-SUBDIRS   := tools strc url clip b64 calc
+SUBDIRS   := tools strc url clip b64 calc rsh
 
 all: $(SUBDIRS)
 
