@@ -4,6 +4,10 @@ r9k
 
 lightweight command-line tools for Linux and macOS terminals, including:
 
-- `strc` – word or line count tools.
+- strc – word or line count tools.
+- url  – encode/decode and parse query parmaeters.
+- clip - copy from standard stream.
+- b64  - encode/decode base64.
+- calc - basic bc command calculater.
 
 ...
