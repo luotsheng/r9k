@@ -11,11 +11,11 @@ int main(int argc, char* argv[])
         if (argc != 2)
                 return 1;
 
-        fp = popen("bc -l", "w");
+        fp = popen("bc -l | sed 's/^\\./0./'", "w");
         if (!fp)
                 return 1;
 
-        fprintf(fp, "%s\n", argv[1]);
+        fprintf(fp, "scale=2; %s\n", argv[1]);
         pclose(fp);
 
         return 0;
