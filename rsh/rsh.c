@@ -4,8 +4,7 @@
  */
 #include <string.h>
 #include <r9k/readline.h>
-
-#include "r9k/compiler_attrs.h"
+#include <r9k/compiler_attrs.h>
 
 int main(int argc, char* argv[])
 {
