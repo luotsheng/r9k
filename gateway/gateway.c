@@ -24,7 +24,7 @@ static int _init(int *p_listen, int *p_epfd)
         listen_fd = tcp_create_listener(PORT);
 
         if (listen_fd < 0) {
-                log_error("listen socket create failed: %s\n", syserr);
+                log_error("Listen socket create failed: %s\n", syserr);
                 return -1;
         }
 
@@ -48,7 +48,7 @@ static int _init(int *p_listen, int *p_epfd)
         *p_listen = listen_fd;
         *p_epfd   = epfd;
 
-        log_info("listening on port: %d\n", PORT);
+        log_info("Server start success listening on port: %d\n", PORT);
 
         return 0;
 }
@@ -99,7 +99,7 @@ static void epoll_mark_writable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p writable failed: %s\n", conn, syserr);
+                        log_error("Mark connection %p writable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
@@ -116,13 +116,13 @@ static void epoll_mark_unwritable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p unwritable failed: %s\n", conn, syserr);
+                        log_error("Mark connection %p unwritable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
 }
 
-static ssize_t unpack(int epfd, struct connection *conn)
+static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
 {
         ssize_t r;
         ipc_t ipc;
@@ -138,7 +138,7 @@ static ssize_t unpack(int epfd, struct connection *conn)
 
                 ipc_ack(&ack, ipc.hdr.mid);
 
-                log_debug("client connecetion %p recv message: %s\n", conn, ipc.data);
+                log_debug("Client connecetion %p recv message: %s\n", conn, ipc.data);
 
                 if (connection_buffer_write(conn, &ack, sizeof(ack_t)) == 0)
                         epoll_mark_writable(epfd, conn);
@@ -148,15 +148,15 @@ static ssize_t unpack(int epfd, struct connection *conn)
 
         switch (r) {
                 case -EINVAL:
-                        log_error("invalid message protocol from %s\n", conn->addr.sin_addr);
+                        log_error("Invalid message protocol from %s\n", conn->addr.sin_addr);
                         return r;
                 case -ENODATA:
                         return r;
                 case -E2BIG:
-                        log_error("message too large from %s\n", conn->addr.sin_addr);
+                        log_error("Message too large from %s\n", conn->addr.sin_addr);
                         return r;
                 default:
-                        log_error("unknown unpack error %ld from %s\n", r, conn->addr.sin_addr);
+                        log_error("Unknown unpack error %ld from %s\n", r, conn->addr.sin_addr);
                         return r;
         }
 }
@@ -169,7 +169,7 @@ static void on_event_read(int epfd, struct connection *conn)
                 r = connection_socket_recv(conn);
 
                 if (r > 0) {
-                        err = unpack(epfd, conn);
+                        err = try_unpack_ipc(epfd, conn);
 
                         if (err < 0 && err != -ENODATA)
                                 goto err;
@@ -178,11 +178,10 @@ static void on_event_read(int epfd, struct connection *conn)
                 }
 
                 if (r == -ENOSPC) {
-                        err = unpack(epfd, conn);
+                        err = try_unpack_ipc(epfd, conn);
 
                         if (err < 0) {
-                                log_error("connection %p read buffer full but cannot consume buffer data\n",
-                                          conn);
+                                log_error("Connection %p read buffer full but cannot consume buffer data\n", conn);
                                 goto err;
                         }
 
@@ -238,7 +237,6 @@ static void route_events(int epfd, int listen_fd,
         }
 }
 
-__attr_noreturn
 int main(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);

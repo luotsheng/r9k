@@ -34,7 +34,7 @@ typedef struct {
         uint32_t magic;
         uint16_t type;
         uint64_t mid;
-} __attribute__((__packed__))ack_t;
+} __attribute__((__packed__)) ack_t;
 
 #define HEADER_SIZE (sizeof(ipc_hdr_t))
 
