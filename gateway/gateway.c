@@ -131,7 +131,7 @@ static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
 
         rb = conn->rb;
 
-        r = ipc_unpack(&ipc, rb->base + rb->rpos, buffer_length(rb));
+        r = ipc_unpack(&ipc, rb->base + rb->rpos, buffer_readable(rb));
 
         if (r > 0) {
                 rb->rpos += r;
