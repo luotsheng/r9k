@@ -29,7 +29,10 @@ typedef struct {
         uint16_t version;   // +2 协议版本
         uint32_t flags;     // +4 标志位
         uint64_t mid;       // +8 消息ID
-} ack_t;
+} __attribute__((__packed__)) ack_t;
+
+int isipc(uint8_t *buf, size_t size);
+int isack(uint8_t *buf, size_t size);
 
 ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size);
 void ipc_header_build(ipc_t *ipc, uint32_t len);

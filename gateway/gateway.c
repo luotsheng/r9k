@@ -170,7 +170,9 @@ static void on_event_read(evlp_t *evlp, struct connection *conn)
                         err = try_unpack_ipc(evlp, conn);
 
                         if (err < 0) {
-                                log_error("connection %p read buffer full but cannot consume buffer data\n", conn);
+                                log_error("connection %p from %s read buffer full but cannot consume buffer data\n",
+                                          conn,
+                                          conn->addr.sin_addr);
                                 goto err;
                         }
 

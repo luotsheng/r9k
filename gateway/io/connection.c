@@ -66,7 +66,12 @@ struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
 
         memcpy(&conn->addr, addr, sizeof(struct host_sockaddr_in));
 
-        log_debug("accept connection %p, fd=%d, rb=%p, wb=%p\n", conn, fd, conn->rb, conn->wb);
+        log_debug("accept connection %p from %s, fd=%d, rb=%p, wb=%p\n",
+                  conn,
+                  conn->addr.sin_addr,
+                  fd,
+                  conn->rb,
+                  conn->wb);
 
         return conn;
 
@@ -80,7 +85,7 @@ void connection_destroy(struct connection *conn)
         if (!conn)
                 return;
 
-        log_debug("Destroying connection %p\n", conn);
+        log_debug("destroying connection %p\n", conn);
 
         if (!isbadf(conn->fd))
                 close(conn->fd);
@@ -143,7 +148,7 @@ ssize_t connection_socket_recv(struct connection *conn)
                 }
 
                 if (n == 0) {
-                        log_debug("Connection %p recv close\n", conn);
+                        log_debug("connection %p recv close\n", conn);
                         return 0;
                 }
 
@@ -154,11 +159,11 @@ ssize_t connection_socket_recv(struct connection *conn)
                         return total;
 
                 if (errno == ECONNRESET) {
-                        log_debug("Connection %p reset by peer\n", conn);
+                        log_debug("connection %p reset by peer\n", conn);
                         return -errno;
                 }
 
-                log_debug("Connection %p recv failed, cause: %s\n", conn, syserr);
+                log_debug("connection %p recv failed, cause: %s\n", conn, syserr);
 
                 return -EIO;
         }

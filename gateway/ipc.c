@@ -6,8 +6,28 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <r9k/compiler_attrs.h>
 
 #define IPC_STRUCT_SIZE (sizeof(ipc_t))
+
+__attr_always_inline
+static inline uint32_t _magic(uint8_t *buf, size_t size)
+{
+        if (size < sizeof(uint32_t))
+                return 0;
+
+        return ntohl(*(uint32_t *) buf);
+}
+
+int isipc(uint8_t *buf, size_t size)
+{
+        return _magic(buf, size) == IPC_MAGIC;
+}
+
+int isack(uint8_t *buf, size_t size)
+{
+        return _magic(buf, size) == ACK_MAGIC;
+}
 
 ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
 {
@@ -16,11 +36,11 @@ ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
 
         ssize_t off = 0;
 
-        ipc->magic = ntohl(*(uint32_t *) (buf + off));
-        off += sizeof(uint32_t);
-
-        if (ipc->magic != IPC_MAGIC)
+        if (!isipc(buf, size))
                 return -EPROTO;
+
+        ipc->magic = IPC_MAGIC;
+        off += sizeof(uint32_t);
 
         ipc->version = ntohs(*(uint16_t *) (buf + off));
         off += sizeof(uint16_t);
