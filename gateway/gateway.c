@@ -89,7 +89,7 @@ static uint64_t ipc_body_valid(const char *data)
 
 err:
         yyjson_doc_free(doc);
-        return -1;
+        return 0;
 }
 
 static void sendack(evlp_t *evlp, struct connection * conn, uint64_t mid)
@@ -127,7 +127,7 @@ static ssize_t try_unpack_ipc(evlp_t *evlp, struct connection *conn)
 
                         mid = ipc_body_valid(data);
 
-                        if (mid < 0)
+                        if (mid == 0)
                                 return consumed > 0 ? 0 : -EPROTO;
 
                         log_info("recv client from %s ipc data[%llu]: %s\n",
