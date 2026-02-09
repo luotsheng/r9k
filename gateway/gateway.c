@@ -135,7 +135,7 @@ static uint64_t ipc_body_valid(const char *data)
         doc = yyjson_read(data, strlen(data), YYJSON_READ_NOFLAG);
 
         if (!doc) {
-                log_error("parse ipc data json error");
+                log_error("parse ipc data json error\n");
                 goto err;
         }
 
@@ -149,21 +149,21 @@ static uint64_t ipc_body_valid(const char *data)
         obj = yyjson_obj_get(root, "content");
 
         if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_STR) {
-                log_error("json content is null or not string");
+                log_error("json content is null or not string\n");
                 goto err;
         }
 
         content = yyjson_get_str(obj);
 
         if (strlen(content) == 0) {
-                log_error("message content cannot empty");
+                log_error("message content cannot empty\n");
                 goto err;
         }
 
         obj = yyjson_obj_get(root, "mid");
 
         if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_NUM) {
-                log_error("json mid is null or not num");
+                log_error("json mid is null or not num\n");
                 goto err;
         }
 
@@ -206,7 +206,7 @@ static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
                                 log_error("invalid protocol data, parse ipc_t failed\n");
                                 goto err;
                         case -ENODATA:
-                                goto err;
+                                return -ENODATA;
                         default:
                                 log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);
                                 goto err;

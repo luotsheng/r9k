@@ -15,7 +15,7 @@
 #include "utils/cntl.h"
 #include "utils/log.h"
 
-#define RB_MAX   128
+#define RB_MAX   4096
 #define WB_MAX   8192
 #define IDLE_MAX 120
 
@@ -66,7 +66,7 @@ struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
 
         memcpy(&conn->addr, addr, sizeof(struct host_sockaddr_in));
 
-        log_debug("Accept connection %p, fd=%d, rb=%p, wb=%p\n", conn, fd, conn->rb, conn->wb);
+        log_debug("accept connection %p, fd=%d, rb=%p, wb=%p\n", conn, fd, conn->rb, conn->wb);
 
         return conn;
 

@@ -32,5 +32,6 @@ typedef struct {
 } ack_t;
 
 ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size);
+void ipc_header_build(ipc_t *ipc, uint32_t len);
 
 #endif /* IPC_H_ */

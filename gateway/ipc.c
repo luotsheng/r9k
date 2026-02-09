@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <r9k/yyjson.h>
 
+#include "utils/log.h"
+
 #define IPC_STRUCT_SIZE (sizeof(ipc_t))
 
 ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
@@ -32,6 +34,9 @@ ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
         ipc->type = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
+        ipc->crc32 = ntohl(*(uint32_t *) (buf + off));
+        off += sizeof(uint32_t);
+
         ipc->body_len = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
@@ -39,4 +44,14 @@ ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
                 return -ENODATA;
 
         return off;
+}
+
+void ipc_header_build(ipc_t *ipc, uint32_t len)
+{
+        ipc->magic = htonl(IPC_MAGIC);
+        ipc->version = htons(IPC_VERSION);
+        ipc->flags = htonl(0);
+        ipc->type = htonl(0);
+        ipc->crc32 = htonl(0);
+        ipc->body_len = htonl(len);
 }
