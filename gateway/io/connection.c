@@ -14,10 +14,7 @@
 #include "socket.h"
 #include "utils/cntl.h"
 #include "utils/log.h"
-
-#define RB_MAX   8192
-#define WB_MAX   16384
-#define IDLE_MAX 120
+#include "config.h"
 
 static void _connection_active(struct connection *conn)
 {
@@ -116,9 +113,9 @@ ssize_t connection_buffer_write(struct connection *conn, const void *data, size_
         if (avail == 0 || size > avail)
                 return -ENOBUFS;
 
-        memcpy(wb->base + wb->wpos, data, size);
+        memcpy(buffer_peek_wcur(wb), data, size);
 
-        wb->wpos += size;
+        buffer_skip_wpos(wb, size);
 
         return size;
 }
@@ -138,11 +135,12 @@ ssize_t connection_socket_recv(struct connection *conn)
                 if (avail == 0)
                         return -ENOSPC;
 
-                n = recv(conn->fd, rb->base + rb->wpos, avail, 0);
+
+                n = recv(conn->fd, buffer_peek_wcur(rb), avail, 0);
 
                 if (n > 0) {
                         total += n;
-                        rb->wpos += n;
+                        buffer_skip_wpos(rb, n);
                         _connection_active(conn);
                         continue;
                 }
@@ -183,10 +181,10 @@ ssize_t connection_socket_send(struct connection *conn)
                 if (left == 0)
                         return 0;
 
-                n = send(conn->fd, wb->base + wb->rpos, left, 0);
+                n = send(conn->fd, buffer_peek_rcur(wb), left, 0);
 
                 if (n > 0) {
-                        wb->rpos += n;
+                        buffer_skip_rpos(wb, n);
                         _connection_active(conn);
                         continue;
                 }

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <r9k/readline.h>
+#include <r9k/yyjson.h>
 
 #include "io/socket.h"
 #include "config.h"
@@ -19,7 +20,7 @@ static void writebuf(const char *message)
 {
         ipc_t ipc;
         int n;
-        char body[4096];
+        char body[32 * 1024];
 
         n = snprintf(body, sizeof(body), "{"
                                            "\"msg_id\":1023890128390189321,"

@@ -32,4 +32,28 @@ static inline size_t buffer_readable(struct buffer *buf)
         return buf->wpos - buf->rpos;
 }
 
+__attr_always_inline
+static inline uint8_t *buffer_peek_rcur(struct buffer *buf)
+{
+        return buf->base + buf->rpos;
+}
+
+__attr_always_inline
+static inline uint8_t *buffer_peek_wcur(struct buffer *buf)
+{
+        return buf->base + buf->wpos;
+}
+
+__attr_always_inline
+static inline void buffer_skip_rpos(struct buffer *buf, size_t bytes)
+{
+        buf->rpos += bytes;
+}
+
+__attr_always_inline
+static inline void buffer_skip_wpos(struct buffer *buf, size_t bytes)
+{
+        buf->wpos += bytes;
+}
+
 #endif /* BUFFER_H_ */

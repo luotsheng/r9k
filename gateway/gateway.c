@@ -39,7 +39,7 @@ static evlp_t *_init(on_read_fn_t on_read, on_write_fn_t on_write)
         return evlp;
 }
 
-static uint64_t ipc_body_valid(const char *data)
+static int valid_and_extract_mid(const char *data, uint64_t *p_mid)
 {
         yyjson_doc *doc;
         yyjson_val *root;
@@ -47,7 +47,6 @@ static uint64_t ipc_body_valid(const char *data)
         yyjson_val *obj_content;
 
         const char *content;
-        uint64_t mid;
 
         doc = yyjson_read(data, strlen(data), YYJSON_READ_NOFLAG);
 
@@ -63,6 +62,7 @@ static uint64_t ipc_body_valid(const char *data)
                 goto err;
         }
 
+        /* check obj content */
         obj_content = yyjson_obj_get(root, "msg_content");
 
         if (!obj_content || !yyjson_get_type(obj_content) == YYJSON_TYPE_STR)
@@ -70,11 +70,12 @@ static uint64_t ipc_body_valid(const char *data)
 
         content = yyjson_get_str(obj_content);
 
-        if (strlen(content) == 0) {
-                log_error("message content cannot empty\n");
+        if (strlen(content) > MAX_CONTENT) {
+                log_error("message content too large\n");
                 goto err;
         }
 
+        /* check mid */
         obj_mid = yyjson_obj_get(root, "msg_id");
 
         if (!obj_mid || !yyjson_get_type(obj_mid) == YYJSON_TYPE_NUM) {
@@ -82,14 +83,14 @@ static uint64_t ipc_body_valid(const char *data)
                 goto err;
         }
 
-        mid = yyjson_get_uint(obj_mid);
+        *p_mid = yyjson_get_uint(obj_mid);
         yyjson_doc_free(doc);
 
-        return mid;
+        return 0;
 
 err:
         yyjson_doc_free(doc);
-        return 0;
+        return -1;
 }
 
 static void sendack(evlp_t *evlp, struct connection * conn, uint64_t mid)
@@ -113,27 +114,26 @@ static ssize_t try_unpack_ipc(evlp_t *evlp, struct connection *conn)
         ssize_t r;
         struct buffer *rb = conn->rb;
         uint8_t *start_buf;
-        ssize_t mid;
+        uint64_t mid;
+        char stack_buf[WB_MAX];
         ssize_t consumed = 0;
 
         while (true) {
-                start_buf = rb->base + rb->rpos;
+                start_buf = buffer_peek_rcur(rb);
 
                 r = ipc_header_unpack(&ipc, start_buf, buffer_readable(rb));
 
                 if (r > 0) {
-                        char *data = (char *) (start_buf + r);
-                        rb->rpos += r + ipc.body_len;
+                        memcpy(stack_buf, start_buf + r, ipc.body_len);
+                        stack_buf[ipc.body_len] = '\0';
+                        buffer_skip_rpos(rb, r + ipc.body_len);
 
-                        mid = ipc_body_valid(data);
-
-                        if (mid == 0)
+                        if (valid_and_extract_mid(stack_buf, &mid) != 0)
                                 return consumed > 0 ? 0 : -EPROTO;
 
-                        log_info("recv client from %s ipc data[%llu]: %s\n",
+                        log_info("recv client from %s ipc data - %s\n",
                                  conn->addr.sin_addr,
-                                 mid,
-                                 data);
+                                 stack_buf);
 
                         sendack(evlp, conn, mid);
                         consumed += r;
