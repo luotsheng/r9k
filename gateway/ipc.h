@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+#include "io/buffer.h"
+
 #define IPC_MAGIC   0xBADF00
 #define ACK_MAGIC   0xBADF01
 
@@ -21,7 +23,7 @@ typedef struct {
         uint32_t flags;     // +4 标志位
         uint32_t type;      // +4 类型
         uint32_t crc32;     // +4 crc32
-        uint32_t body_len;  // +4 消息体长度
+        uint32_t tlv;       // +4 消息体长度
 } __attribute__((__packed__)) ipc_t;
 
 #define IPC_STRUCT_SIZE (sizeof(ipc_t))
@@ -36,8 +38,9 @@ typedef struct {
 int isipc(uint8_t *buf, size_t size);
 int isack(uint8_t *buf, size_t size);
 
-ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size);
-void ipc_header_build(ipc_t *ipc, uint32_t len);
+void ipc_header_serialize(ipc_t *ipc, uint32_t len);
+ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf,
+                              size_t size);
 
 void ack(ack_t *ack, uint32_t mid);
 

@@ -96,6 +96,16 @@ void connection_destroy(struct connection *conn)
         free(conn);
 }
 
+void connection_set_userdata(struct connection *conn, void *udata)
+{
+        conn->udata = udata;
+}
+
+void *connection_get_userdata(struct connection *conn)
+{
+        return conn->udata;
+}
+
 void connection_close(struct connection *conn)
 {
         if (!isbadf(conn->fd))

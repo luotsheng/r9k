@@ -6,7 +6,7 @@
 #define CONFIG_H_
 
 #define PORT        26405
-#define MAX_EVENTS  4096
+#define MAX_EVENTS  32768
 #define MAX_CONTENT 4096
 
 #define RB_MAX      8192

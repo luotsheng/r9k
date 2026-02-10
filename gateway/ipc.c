@@ -4,12 +4,16 @@
  */
 #include "ipc.h"
 
+#include <string.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <r9k/compiler_attrs.h>
 
+#include "utils/log.h"
+
 __attr_always_inline
-static inline uint32_t _magic(uint8_t *buf, size_t size)
+static inline uint32_t _ipc_magic(uint8_t *buf, size_t size)
 {
         if (size < sizeof(uint32_t))
                 return 0;
@@ -17,17 +21,7 @@ static inline uint32_t _magic(uint8_t *buf, size_t size)
         return ntohl(*(uint32_t *) buf);
 }
 
-int isipc(uint8_t *buf, size_t size)
-{
-        return _magic(buf, size) == IPC_MAGIC;
-}
-
-int isack(uint8_t *buf, size_t size)
-{
-        return _magic(buf, size) == ACK_MAGIC;
-}
-
-ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
+static ssize_t _ipc_buffer_valid(ipc_t *ipc, uint8_t *buf, size_t size)
 {
         if (size < IPC_STRUCT_SIZE)
                 return -ENODATA;
@@ -52,23 +46,65 @@ ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
         ipc->crc32 = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        ipc->body_len = ntohl(*(uint32_t *) (buf + off));
+        ipc->tlv = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        if (ipc->body_len > (size - off))
+        if (ipc->tlv > (size - off))
                 return -ENODATA;
 
         return IPC_STRUCT_SIZE;
 }
 
-void ipc_header_build(ipc_t *ipc, uint32_t len)
+int isipc(uint8_t *buf, size_t size)
+{
+        return _ipc_magic(buf, size) == IPC_MAGIC;
+}
+
+int isack(uint8_t *buf, size_t size)
+{
+        return _ipc_magic(buf, size) == ACK_MAGIC;
+}
+
+void ipc_header_serialize(ipc_t *ipc, uint32_t len)
 {
         ipc->magic = htonl(IPC_MAGIC);
         ipc->version = htons(IPC_VERSION);
         ipc->flags = htonl(0);
         ipc->type = htonl(0);
         ipc->crc32 = htonl(0);
-        ipc->body_len = htonl(len);
+        ipc->tlv = htonl(len);
+}
+
+ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf, size_t size)
+{
+        ipc_t ipc;
+        uint8_t *buf;
+        ssize_t r;
+
+        buf = buffer_peek_rcur(rb);
+
+        r = _ipc_buffer_valid(&ipc, buf, buffer_readable(rb));
+
+        if (r > 0) {
+                if (size < ipc.tlv + 1)
+                        return -ENOBUFS;
+
+                memcpy(sbuf, buf + r, ipc.tlv);
+                sbuf[ipc.tlv] = '\0';
+
+                return buffer_skip_rpos(rb, r + ipc.tlv);
+        }
+
+        switch (r) {
+                case -EPROTO:
+                        log_error("invalid protocol data, parse ipc_t failed\n");
+                        return r;
+                case -ENODATA:
+                        return r;
+                default:
+                        log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);
+                        return r;
+        }
 }
 
 void ack(ack_t *ack, uint32_t mid)

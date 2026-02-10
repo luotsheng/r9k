@@ -45,15 +45,29 @@ static inline uint8_t *buffer_peek_wcur(struct buffer *buf)
 }
 
 __attr_always_inline
-static inline void buffer_skip_rpos(struct buffer *buf, size_t bytes)
+static inline size_t buffer_skip_rpos(struct buffer *buf, size_t bytes)
 {
-        buf->rpos += bytes;
+        size_t newpos = buf->rpos + bytes;
+
+        if (newpos > buf->wpos)
+                newpos = buf->wpos;
+
+        buf->rpos = newpos;
+
+        return buf->rpos;
 }
 
 __attr_always_inline
-static inline void buffer_skip_wpos(struct buffer *buf, size_t bytes)
+static inline size_t buffer_skip_wpos(struct buffer *buf, size_t bytes)
 {
-        buf->wpos += bytes;
+        size_t newpos = buf->wpos + bytes;
+
+        if (newpos > buf->cap)
+                newpos = buf->cap;
+
+        buf->wpos = newpos;
+
+        return buf->wpos;
 }
 
 #endif /* BUFFER_H_ */

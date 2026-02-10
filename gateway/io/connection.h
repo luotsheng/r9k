@@ -18,10 +18,13 @@ struct connection {
         struct host_sockaddr_in addr;
         time_t last_active_ts;
         uint32_t idle_timeout_sec;
+        void *udata;
 };
 
 struct connection *connection_create(int fd, struct host_sockaddr_in *addr);
 void connection_destroy(struct connection *conn);
+void connection_set_userdata(struct connection *conn, void *udata);
+void *connection_get_userdata(struct connection *conn);
 
 /* 写入数据到缓冲区，要么全部写成功要么全部写失败，
  * 返回 0 表示写入成功。 */

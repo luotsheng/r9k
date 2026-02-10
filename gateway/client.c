@@ -33,7 +33,7 @@ static void writebuf(const char *message)
                                            "\"msg_content"
                                            "\":\"%s\""
                                          "}", message);
-        ipc_header_build(&ipc, n);
+        ipc_header_serialize(&ipc, n);
 
         memcpy(buf + off, &ipc, sizeof(ipc_t));
         off += sizeof(ipc_t);

@@ -9,8 +9,7 @@
 #include <sys/epoll.h>
 
 #include "utils/log.h"
-
-#define MAX_EVENTS 4096
+#include "config.h"
 
 struct evlp {
         int k_fd;
@@ -44,7 +43,7 @@ static void _evlp_on_accept(evlp_t *evlp)
                 }
 
                 struct epoll_event ev = {
-                        .events = EPOLLIN,
+                        .events = EPOLLIN | EPOLLET,
                         .data.ptr = conn,
                 };
 
