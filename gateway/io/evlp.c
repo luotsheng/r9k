@@ -2,13 +2,13 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (conn) 2025
  */
-#include "evlp.h"
+#include "../evlp.h"
 
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/epoll.h>
 
-#include "utils/log.h"
+#include "../utils/log.h"
 
 #define MAX_EVENTS 4096
 

@@ -5,7 +5,7 @@
 #ifndef EVLP_H_
 #define EVLP_H_
 
-#include "io/connection.h"
+#include "connection.h"
 
 typedef struct evlp evlp_t;
 

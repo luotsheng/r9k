@@ -11,10 +11,10 @@
 
 #include "io/connection.h"
 #include "io/socket.h"
+#include "io/evlp.h"
 #include "utils/log.h"
 #include "ipc.h"
 #include "config.h"
-#include "evlp.h"
 
 extern void client_start(void);
 
