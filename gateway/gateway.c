@@ -15,6 +15,7 @@
 #include "utils/log.h"
 #include "ipc.h"
 #include "config.h"
+#include "utils/hashtable.h"
 
 extern void client_start(void);
 
