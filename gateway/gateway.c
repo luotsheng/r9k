@@ -39,25 +39,35 @@ static evlp_t *_init(struct evlp_create_info *p_info)
         return evlp;
 }
 
-static ssize_t serialize(evlp_t *evlp, struct connection *conn)
+static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
+        uint64_t mid;
         char stack_buf[WB_MAX];
 
         r = ipc_proto_deserialize(conn->rb, stack_buf, sizeof(stack_buf));
 
-        return r;
+        if (r > 0) {
+                r = ipc_extract_and_valid(stack_buf, &mid);
+                if (r != 0)
+                        return -EINVAL;
+                log_info("ipc recv body %s\n", stack_buf);
+        }
+
+        return 0;
 }
 
 static void on_event_read(evlp_t *evlp, struct connection *conn)
 {
+        __attr_ignore(evlp);
+
         ssize_t r, err;
 
         while (true) {
                 r = connection_socket_recv(conn);
 
                 if (r > 0) {
-                        err = serialize(evlp, conn);
+                        err = serialize_and_process(conn);
 
                         if (err < 0 && err != -ENODATA)
                                 goto err;
@@ -66,7 +76,7 @@ static void on_event_read(evlp_t *evlp, struct connection *conn)
                 }
 
                 if (r == -ENOSPC) {
-                        err = serialize(evlp, conn);
+                        err = serialize_and_process(conn);
 
                         if (err < 0) {
                                 log_error("connection %p from %s read buffer full but cannot consume buffer data\n",

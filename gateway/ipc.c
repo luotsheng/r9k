@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <r9k/compiler_attrs.h>
 
+#include "config.h"
+#include "r9k/yyjson.h"
 #include "utils/log.h"
 
 __attr_always_inline
@@ -75,7 +77,7 @@ void ipc_header_serialize(ipc_t *ipc, uint32_t len)
         ipc->tlv = htonl(len);
 }
 
-ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf, size_t size)
+ssize_t ipc_proto_deserialize(struct buffer *rb, char *dst, size_t size)
 {
         ipc_t ipc;
         uint8_t *buf;
@@ -89,8 +91,8 @@ ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf, size_t size)
                 if (size < ipc.tlv + 1)
                         return -ENOBUFS;
 
-                memcpy(sbuf, buf + r, ipc.tlv);
-                sbuf[ipc.tlv] = '\0';
+                memcpy(dst, buf + r, ipc.tlv);
+                dst[ipc.tlv] = '\0';
 
                 return buffer_skip_rpos(rb, r + ipc.tlv);
         }
@@ -105,6 +107,45 @@ ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf, size_t size)
                         log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);
                         return r;
         }
+}
+
+int ipc_extract_and_valid(char *payload, uint64_t *mid)
+{
+        yyjson_doc *doc;
+        yyjson_val *root;
+        yyjson_val *v_mid;
+        yyjson_val *v_content;
+
+        doc = yyjson_read(payload, strlen(payload), 0);
+
+        if (!doc)
+                return -EINVAL;
+
+        root = yyjson_doc_get_root(doc);
+
+        /* message id */
+        v_mid = yyjson_obj_get(root, "msg_id");
+
+        if (!v_mid || !yyjson_is_uint(v_mid))
+                goto err_free;
+
+        *mid = yyjson_get_uint(v_mid);
+
+        /* message content */
+        v_content = yyjson_obj_get(root, "msg_content");
+
+        if (!v_content || !yyjson_is_str(v_content))
+                goto err_free;
+
+        if (yyjson_get_len(v_content) > MAX_CONTENT)
+                goto err_free;
+
+        yyjson_doc_free(doc);
+        return 0;
+
+err_free:
+        yyjson_doc_free(doc);
+        return -EINVAL;
 }
 
 void ack(ack_t *ack, uint32_t mid)

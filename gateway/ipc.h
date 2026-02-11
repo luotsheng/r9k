@@ -39,8 +39,9 @@ int isipc(uint8_t *buf, size_t size);
 int isack(uint8_t *buf, size_t size);
 
 void ipc_header_serialize(ipc_t *ipc, uint32_t len);
-ssize_t ipc_proto_deserialize(struct buffer *rb, char *sbuf,
+ssize_t ipc_proto_deserialize(struct buffer *rb, char *dst,
                               size_t size);
+int ipc_extract_and_valid(char *payload, uint64_t *mid);
 
 void ack(ack_t *ack, uint32_t mid);
 
