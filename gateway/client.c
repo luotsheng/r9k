@@ -55,10 +55,10 @@ void client_start()
         int fd;
 
         for (int i = 0; i < MAX_FDS; i++) {
-                fd = tcp_connect("127.0.0.1", PORT);
+                fd = tcp_connect("127.0.0.1", GW_SERVER_PORT);
 
                 if (fd < 0) {
-                        log_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
+                        log_error("connect to 127.0.0.1 %d failed, cause: %s\n", GW_SERVER_PORT, syserr);
                         continue;
                 }
 
