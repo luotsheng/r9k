@@ -23,7 +23,7 @@ static evlp_t *_init(struct evlp_create_info *p_info)
         int listen_fd;
         evlp_t *evlp;
 
-        listen_fd = tcp_create_listener(PORT);
+        listen_fd = tcp_create_listener(GW_SERVER_PORT);
 
         if (listen_fd < 0) {
                 log_error("listen socket create failed: %s\n", syserr);
@@ -43,7 +43,7 @@ static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
         uint64_t mid;
-        char stack_buf[WB_MAX];
+        char stack_buf[MAX_WB];
 
         r = ipc_proto_deserialize(conn->rb, stack_buf, sizeof(stack_buf));
 

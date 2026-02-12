@@ -340,10 +340,10 @@ void evlp_destroy(evlp_t *evlp)
 void evlp_poll_events(evlp_t *evlp)
 {
         int nfds;
-        struct epoll_event events[MAX_EVENTS];
+        struct epoll_event events[MAX_EVT];
 
         while (1) {
-                nfds = epoll_wait(evlp->epfd, events, MAX_EVENTS, -1);
+                nfds = epoll_wait(evlp->epfd, events, MAX_EVT, -1);
 
                 if (nfds < 0) {
                         log_warn("epoll_wait nfds=%d, err=%s\n", nfds, syserr);

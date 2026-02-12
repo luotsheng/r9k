@@ -137,7 +137,7 @@ int ipc_extract_and_valid(char *payload, uint64_t *mid)
         if (!v_content || !yyjson_is_str(v_content))
                 goto err_free;
 
-        if (yyjson_get_len(v_content) > MAX_CONTENT)
+        if (yyjson_get_len(v_content) > MAX_CNT)
                 goto err_free;
 
         yyjson_doc_free(doc);

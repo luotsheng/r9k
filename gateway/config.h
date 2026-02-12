@@ -5,12 +5,12 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#define PORT         26405
-#define MAX_EVENTS   32768
-#define MAX_CONTENT  4096
+#define GW_SERVER_PORT  26405
 
-#define RB_MAX       8192
-#define WB_MAX       16384
-#define IDLE_MAX     15
+#define MAX_EVT         32768
+#define MAX_CNT         4096
+#define MAX_RB          8192
+#define MAX_WB          16384
+#define MAX_IDL         15
 
 #endif /* CONFIG_H_ */

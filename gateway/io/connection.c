@@ -74,18 +74,18 @@ struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
         conn->fd = fd;
         conn->state = CONN_STATE_ACTIVE;
 
-        conn->rb = buffer_alloc(RB_MAX);
+        conn->rb = buffer_alloc(MAX_RB);
 
         if (!conn->rb)
                 goto err;
 
-        conn->wb = buffer_alloc(WB_MAX);
+        conn->wb = buffer_alloc(MAX_WB);
 
         if (!conn->wb)
                 goto err;
 
         conn->last_active_ts = time(NULL);
-        conn->idle_timeout_sec = IDLE_MAX;
+        conn->idle_timeout_sec = MAX_IDL;
 
         memcpy(&conn->addr, addr, sizeof(struct host_sockaddr_in));
 
