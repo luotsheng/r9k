@@ -104,8 +104,8 @@ static int _evlp_add_listen_sock(evlp_t *evlp, int listen_fd)
 
 static void _evlp_on_timer(evlp_t *evlp)
 {
-        uint64_t _tv_tmp;
-        read(evlp->timer_fd, &_tv_tmp, sizeof(_tv_tmp));
+        uint64_t _expired_count;
+        read(evlp->timer_fd, &_expired_count, sizeof(_expired_count));
 
         if (HASHTABLE_IS_EMPTY(evlp->actives))
                 return;
