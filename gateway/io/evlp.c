@@ -5,9 +5,11 @@
 #define CONNECTION_EXTERN_FUNC
 #include "evlp.h"
 
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/fcntl.h>
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
 
@@ -24,6 +26,8 @@ struct evlp {
         on_accept_fn_t on_accept;
         struct hashtable *conns;
         struct connection *close_head;
+        uint32_t emfile_conn_cnt; /* connection count when EMFILE */
+        int reject_new_conn; /* reject new connection */
 };
 
 #define CLOSE_HEAD_ADD(_evlp, conn)            \
@@ -66,6 +70,22 @@ static int _init_timer(evlp_t *evlp)
 err:
         close(evlp->timer_fd);
         return -1;
+}
+
+static int _evlp_add_listen_sock(evlp_t *evlp, int listen_fd)
+{
+        evlp->listen_fd = listen_fd;
+
+        struct epoll_event tev = {
+                .events = EPOLLIN,
+                .data.fd = evlp->listen_fd,
+        };
+        if (epoll_ctl(evlp->epfd, EPOLL_CTL_ADD, evlp->listen_fd, &tev) < 0) {
+                log_error("epoll_ctl add listen_fd failed, cause: %s\n", syserr);
+                return -1;
+        }
+
+        return 0;
 }
 
 static void _evlp_on_timer(evlp_t *evlp)
@@ -117,6 +137,34 @@ static void _evlp_connection_gc(evlp_t *evlp)
         }
 }
 
+static void _evlp_enable_reject(evlp_t *evlp)
+{
+        evlp->reject_new_conn = 1;
+        evlp->emfile_conn_cnt = evlp->conns->size;
+
+        epoll_ctl(evlp->epfd,
+                  EPOLL_CTL_DEL,
+                  evlp->listen_fd,
+                  NULL);
+
+        log_warn("evlp enable reject mode, emfile connection count: %u\n",
+                 evlp->emfile_conn_cnt);
+}
+
+static void _evlp_check_reject(evlp_t *evlp)
+{
+        if (!evlp->reject_new_conn)
+                return;
+
+        if (evlp->conns->size < evlp->emfile_conn_cnt * 65 / 100) {
+                evlp->reject_new_conn = 0;
+                _evlp_add_listen_sock(evlp, evlp->listen_fd);
+
+                log_warn("evlp disable reject mode, active connection count: %u\n",
+                         evlp->conns->size);
+        }
+}
+
 static void _evlp_on_accept(evlp_t *evlp)
 {
         int cli;
@@ -129,8 +177,14 @@ static void _evlp_on_accept(evlp_t *evlp)
                 if (cli < 0) {
                         RETRY_IF_EINTR();
 
-                        if (is_eagain() || errno == EMFILE)
+                        if (is_eagain())
                                 break;
+
+                        if (is_emfile()) {
+                                log_error("accept new connection failed %s\n", syserr);
+                                _evlp_enable_reject(evlp);
+                                break;
+                        }
                 }
 
                 conn = connection_create(cli, &addr);
@@ -177,7 +231,7 @@ static void _evlp_route_events(evlp_t *evlp,
                         }
                 }
 
-                if (cur_ev->data.fd == evlp->listen_fd) {
+                if (cur_ev->data.fd == evlp->listen_fd && !evlp->reject_new_conn) {
                         _evlp_on_accept(evlp);
                         continue;
                 }
@@ -197,7 +251,7 @@ static void _evlp_route_events(evlp_t *evlp,
 
 evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
 {
-        evlp_t *evlp = malloc(sizeof(evlp_t));
+        evlp_t *evlp = calloc(1, sizeof(evlp_t));
 
         if (!evlp)
                 goto err_null;
@@ -219,17 +273,7 @@ evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
                 goto err_free;
         }
 
-        evlp->listen_fd = listen_fd;
-
-        struct epoll_event tev = {
-                .events = EPOLLIN,
-                .data.fd = listen_fd,
-        };
-
-        if (epoll_ctl(evlp->epfd, EPOLL_CTL_ADD, listen_fd, &tev) < 0) {
-                log_error("epoll_ctl add listen_fd failed, cause: %s\n", syserr);
-                goto err_close;
-        }
+        _evlp_add_listen_sock(evlp, listen_fd);
 
         /* timer schedule */
         if (_init_timer(evlp) != 0)
@@ -263,6 +307,7 @@ void evlp_poll_events(evlp_t *evlp)
 
         _evlp_route_events(evlp, events, nfds);
         _evlp_connection_gc(evlp);
+        _evlp_check_reject(evlp);
 }
 
 void evlp_mark_writable(evlp_t *evlp, struct connection *conn)

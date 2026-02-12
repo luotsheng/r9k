@@ -17,7 +17,7 @@
 static size_t off = 0;
 static char buf[64 * 1024];
 
-#define MAX_FDS 512
+#define MAX_FDS 128
 int fds[MAX_FDS];
 
 static void writebuf(const char *message)

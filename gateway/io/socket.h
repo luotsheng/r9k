@@ -13,6 +13,7 @@
                 continue
 
 #define is_eagain() (errno == EAGAIN || errno == EWOULDBLOCK)
+#define is_emfile() (errno == EMFILE || errno == ENFILE)
 
 struct host_sockaddr_in {
         uint16_t sin_port;
