@@ -5,12 +5,15 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#define GW_SERVER_PORT  26405
+#include <r9k/size.h>
 
-#define MAX_EVT         32768
-#define MAX_CNT         4096
-#define MAX_RB          8192
-#define MAX_WB          16384
-#define MAX_IDL         15
+#define GW_SERVER_PORT        26405     /* server port */
+
+#define MAX_EVT         SIZE_KB( 4)     /* max events */
+#define MAX_CNT         SIZE_KB( 4)     /* max message content */
+#define MAX_RB          SIZE_KB( 8)     /* max read buffer */
+#define MAX_WB          SIZE_KB(32)     /* max write buffer */
+
+#define MAX_IDL                 15      /* max idle timeout sec */
 
 #endif /* CONFIG_H_ */
