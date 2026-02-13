@@ -135,7 +135,7 @@ static void _evlp_on_timer(evlp_t *evlp)
         }
 
         if (arrsize > 0)
-                log_info("evlp timer destroy %zu conns.\n", arrsize);
+                log_info("evlp timer destroy %zu connections.\n", arrsize);
 }
 
 static void _evlp_gc(evlp_t *evlp)
@@ -346,7 +346,8 @@ void evlp_poll_events(evlp_t *evlp)
                 nfds = epoll_wait(evlp->epfd, events, MAX_EVT, -1);
 
                 if (nfds < 0) {
-                        log_warn("epoll_wait nfds=%d, err=%s\n", nfds, syserr);
+                        if (!is_eagain())
+                                log_error("epoll_wait nfds=%d, err=%s\n", nfds, syserr);
                         continue;
                 }
 
