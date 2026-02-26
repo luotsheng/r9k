@@ -39,18 +39,27 @@ static evlp_t *_init(struct evlp_create_info *p_info)
         return evlp;
 }
 
+static ssize_t _ack_serialize_and_process(struct buffer *rb)
+{
+        ack_t ack;
+
+        if (ack_proto_deserialize(rb, &ack) != 0)
+                return -EINVAL;
+
+        return 0;
+}
+
 static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
         uint64_t mid;
-        ack_t ack;
         char stack_buf[MAX_WB];
         struct buffer *rb = conn->rb;
 
-        if (ack_proto_deserialize(rb, &ack) == 0) {
-                if (ack.flags & ACK_FLAG_HEARTBEAT)
-                        return 0;
-        }
+        r = _ack_serialize_and_process(rb);
+
+        if (r == 0)
+                return 0;
 
         r = ipc_proto_deserialize(rb, stack_buf, sizeof(stack_buf));
 
