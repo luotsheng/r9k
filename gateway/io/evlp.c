@@ -27,7 +27,7 @@ struct evlp {
         struct hashtable        *actives;           /* active connections hash */
         struct connection       *close_head;        /* deferred close list (lifo) */
 
-        /* callbacks - usually kept together */
+        /* callbacks */
         on_accept_fn_t          on_accept;
         on_close_fn_t           on_close;
         on_read_fn_t            on_read;

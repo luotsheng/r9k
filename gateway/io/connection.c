@@ -17,7 +17,7 @@
 #include "utils/log.h"
 #include "config.h"
 
-static void _connection_active(struct connection *conn)
+static void _connection_mark_active(struct connection *conn)
 {
         conn->last_active_ts = time(NULL);
 }
@@ -145,7 +145,7 @@ ssize_t connection_socket_recv(struct connection *conn)
                 if (n > 0) {
                         total += n;
                         buffer_skip_wpos(rb, n);
-                        _connection_active(conn);
+                        _connection_mark_active(conn);
                         continue;
                 }
 
@@ -183,7 +183,7 @@ ssize_t connection_socket_send(struct connection *conn)
 
                 if (n > 0) {
                         buffer_skip_rpos(wb, n);
-                        _connection_active(conn);
+                        _connection_mark_active(conn);
                         continue;
                 }
 

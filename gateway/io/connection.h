@@ -16,16 +16,25 @@ typedef enum {
 } connection_state_t;
 
 struct connection {
-        int fd;
-        struct buffer *rb;
-        struct buffer *wb;
-        connection_state_t state;
-        uint8_t writable;
-        struct host_sockaddr_in addr;
-        time_t last_active_ts;
-        uint32_t idle_timeout_sec;
-        struct connection *next;
-        void *udata;
+        /* socket fd */
+        int                             fd;
+
+        /* read and write buffer */
+        struct buffer                   *rb;
+        struct buffer                   *wb;
+
+        /* connection states */
+        connection_state_t              state;
+        uint8_t                         writable;
+
+        /* connection proeprties */
+        struct host_sockaddr_in         addr;
+        time_t                          last_active_ts;
+        uint32_t                        idle_timeout_sec;
+        struct connection               *next;
+
+        /* user data */
+        void                            *udata;
 };
 
 struct connection *connection_create(int fd, struct host_sockaddr_in *addr);

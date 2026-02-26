@@ -79,6 +79,10 @@ void client_start()
                 if (!line)
                         continue;
 
+                ack_t ack;
+                ack_header_serialize(&ack, 0, ACK_FLAG_HEARTBEAT);
+                send(fd, &ack, sizeof(ack_t), 0);
+
                 writebuf(line);
                 send(fd, &buf, off, MSG_NOSIGNAL);
         }
