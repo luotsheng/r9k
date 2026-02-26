@@ -148,10 +148,36 @@ err_free:
         return -EINVAL;
 }
 
-void ack(ack_t *ack, uint32_t mid)
+void ack_header_serialize(ack_t *ack, uint64_t mid, uint32_t flags)
 {
         ack->magic = htonl(ACK_MAGIC);
         ack->version = htons(ACK_VERSION);
-        ack->flags = htonl(0);
-        ack->mid = htonl(mid);
+        ack->flags = htonl(flags);
+        ack->mid = htobe64(mid);
+}
+
+ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst)
+{
+        uint8_t *buf = buffer_peek_rcur(rb);
+
+        if (!isack(buf, buffer_readable(rb)))
+                return -EINVAL;
+
+        size_t off = 0;
+
+        dst->magic = ntohl(* (uint32_t *) buf + off);
+        off += sizeof(uint32_t);
+
+        dst->version = ntohs(*(uint16_t *) (buf + off));
+        off += sizeof(uint16_t);
+
+        dst->flags = ntohl(*(uint32_t *) (buf + off));
+        off += sizeof(uint32_t);
+
+        dst->mid = be64toh(*(uint64_t *) (buf + off));
+        off += sizeof(uint64_t);
+
+        buffer_skip_rpos(rb, off);
+
+        return 0;
 }

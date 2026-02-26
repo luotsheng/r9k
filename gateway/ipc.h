@@ -17,6 +17,8 @@
 #define IPC_VERSION 1
 #define ACK_VERSION 1
 
+#define ACK_FLAG_HEARTBEAT 0x00001
+
 typedef struct {
         uint32_t magic;     // +4 魔数
         uint16_t version;   // +2 协议版本
@@ -43,6 +45,7 @@ ssize_t ipc_proto_deserialize(struct buffer *rb, char *dst,
                               size_t size);
 int ipc_extract_and_valid(char *payload, uint64_t *mid);
 
-void ack(ack_t *ack, uint32_t mid);
+void ack_header_serialize(ack_t *ack, uint64_t mid, uint32_t flags);
+ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst);
 
 #endif /* IPC_H_ */

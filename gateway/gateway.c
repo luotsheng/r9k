@@ -43,9 +43,16 @@ static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
         uint64_t mid;
+        ack_t ack;
         char stack_buf[MAX_WB];
+        struct buffer *rb = conn->rb;
 
-        r = ipc_proto_deserialize(conn->rb, stack_buf, sizeof(stack_buf));
+        if (ack_proto_deserialize(rb, &ack) == 0) {
+                if (ack.flags & ACK_FLAG_HEARTBEAT)
+                        return 0;
+        }
+
+        r = ipc_proto_deserialize(rb, stack_buf, sizeof(stack_buf));
 
         if (r > 0) {
                 r = ipc_extract_and_valid(stack_buf, &mid);
