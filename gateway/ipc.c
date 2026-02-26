@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include "utils/log.h"
+#include "utils/endian.h"
 
 __attr_always_inline
 static inline uint32_t _ipc_magic(uint8_t *buf, size_t size)
@@ -153,7 +154,7 @@ void ack_header_serialize(ack_t *ack, uint64_t mid, uint32_t flags)
         ack->magic = htonl(ACK_MAGIC);
         ack->version = htons(ACK_VERSION);
         ack->flags = htonl(flags);
-        ack->mid = htobe64(mid);
+        ack->mid = htonll(mid);
 }
 
 ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst)
@@ -174,7 +175,7 @@ ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst)
         dst->flags = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        dst->mid = be64toh(*(uint64_t *) (buf + off));
+        dst->mid = ntohll(*(uint64_t *) (buf + off));
         off += sizeof(uint64_t);
 
         buffer_skip_rpos(rb, off);
