@@ -57,6 +57,16 @@ static ssize_t serialize_and_process(struct connection *conn)
         return 0;
 }
 
+static void on_event_accept(evlp_t *evlp, struct connection *conn)
+{
+        __attr_ignore2(evlp, conn);
+}
+
+static void on_event_close(evlp_t *evlp, struct connection *conn)
+{
+        __attr_ignore2(evlp, conn);
+}
+
 static void on_event_read(evlp_t *evlp, struct connection *conn)
 {
         __attr_ignore(evlp);
@@ -113,6 +123,8 @@ int main(int argc, char **argv)
         evlp_t *evlp;
 
         struct evlp_create_info evlp_ci = {
+                .on_accept = on_event_accept,
+                .on_close = on_event_close,
                 .on_read = on_event_read,
                 .on_write = on_event_write,
         };

@@ -29,6 +29,7 @@ struct evlp {
 
         /* callbacks - usually kept together */
         on_accept_fn_t          on_accept;
+        on_close_fn_t           on_close;
         on_read_fn_t            on_read;
         on_write_fn_t           on_write;
 
@@ -295,9 +296,10 @@ evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
         if (!evlp->actives)
                 goto err_free;
 
+        evlp->on_accept = info->on_accept;
+        evlp->on_close = info->on_close;
         evlp->on_read = info->on_read;
         evlp->on_write = info->on_write;
-        evlp->on_accept = info->on_accept;
 
         evlp->epfd = epoll_create1(EPOLL_CLOEXEC);
 
@@ -415,4 +417,7 @@ void evlp_close(evlp_t *evlp, struct connection *conn)
                   NULL);
 
         CLOSE_HEAD_ADD(evlp, conn);
+
+        if (evlp->on_close)
+                evlp->on_close(evlp, conn);
 }
