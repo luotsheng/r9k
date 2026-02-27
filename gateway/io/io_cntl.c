@@ -7,20 +7,30 @@
 #include <sys/fcntl.h>
 #include <errno.h>
 
-int isbadf(int fd)
-{
-        if (fcntl(fd, F_GETFD, 0) < 0)
-                if (errno == EBADF)
-                        return 1;
-        return 0;
-}
-
 int set_nonblock(int fd)
 {
-        int flags = fcntl(fd, F_GETFL, 0);
+        int flags, r;
 
-        if (flags < 0)
-                return -1;
+        while (1) {
+                flags = fcntl(fd, F_GETFL);
 
-        return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+                if (flags >= 0)
+                        break;
+
+                if (errno != EINTR)
+                        return -1;
+        }
+
+        if (flags & O_NONBLOCK)
+                return 0;
+
+        while (1) {
+                r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+                if (r >= 0)
+                        return 0;
+
+                if (errno != EINTR)
+                        return -1;
+        }
 }
