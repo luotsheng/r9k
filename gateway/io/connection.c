@@ -13,7 +13,6 @@
 #include <sys/socket.h>
 
 #include "socket.h"
-#include "io_cntl.h"
 #include "utils/log.h"
 #include "config.h"
 
@@ -37,10 +36,13 @@ static void _connection_reset(struct connection *conn)
 
 void connection_close(struct connection *conn)
 {
-        if (!isbadf(conn->fd))
-                close(conn->fd);
+        if (conn->state == CONN_STATE_CLOSING)
+                return;
 
         conn->state = CONN_STATE_CLOSING;
+
+        close(conn->fd);
+        conn->fd = -1;
 }
 
 void connection_destroy(struct connection *conn)
@@ -62,9 +64,6 @@ void connection_destroy(struct connection *conn)
 struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
 {
         struct connection *conn;
-
-        if (isbadf(fd))
-                return NULL;
 
         conn = calloc(1, sizeof(struct connection));
 
