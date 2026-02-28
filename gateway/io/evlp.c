@@ -12,7 +12,6 @@
 #include <sys/fcntl.h>
 #include <sys/timerfd.h>
 #include <sys/epoll.h>
-
 #include "utils/log.h"
 #include "utils/hashtable.h"
 #include "config.h"
@@ -156,6 +155,7 @@ static void _evlp_gc(evlp_t *evlp)
         while ((n = evlp->close_head)) {
                 evlp->close_head = n->next;
                 connection_destroy(n);
+                log_debug("evlp gc destroy %s connection\n", n->addr.sin_addr);
         }
 }
 

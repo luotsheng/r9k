@@ -46,7 +46,7 @@ void _logger_record(const char *level, const char *fmt, ...)
         time_info = localtime(&now);
         strftime(strtime, sizeof(strtime), "%Y-%m-%d %H:%M:%S", time_info);
 
-        printf("%s+%03ld [%d] %s%s%s - %s",
+        printf("%s+%03ld [%d] %s%-5s%s - %s",
                 strtime,
                 tv.tv_usec / 1000,
                 getpid(),
