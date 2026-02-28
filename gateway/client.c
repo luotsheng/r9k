@@ -22,7 +22,7 @@ int fds[MAX_FDS];
 
 static void writebuf(const char *message)
 {
-        fimp_t ipc;
+        fimp_t fip;
         int n;
         char body[32 * 1024];
 
@@ -37,9 +37,9 @@ static void writebuf(const char *message)
                                            "\"msg_content"
                                            "\":\"%s\""
                                          "}", message);
-        fimp_header_serialize(&ipc, n);
+        fimp_header_serialize(&fip, n);
 
-        memcpy(buf + off, &ipc, sizeof(fimp_t));
+        memcpy(buf + off, &fip, sizeof(fimp_t));
         off += sizeof(fimp_t);
 
         memcpy(buf + off, body, n);

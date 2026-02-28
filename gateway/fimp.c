@@ -24,7 +24,7 @@ static inline uint32_t _fimp_magic(uint8_t *buf, size_t size)
         return ntohl(*(uint32_t *) buf);
 }
 
-static ssize_t _fimp_buffer_valid(fimp_t *ipc, uint8_t *buf, size_t size)
+static ssize_t _fimp_buffer_valid(fimp_t *fip, uint8_t *buf, size_t size)
 {
         if (size < FIMP_STRUCT_SIZE)
                 return -ENODATA;
@@ -34,28 +34,28 @@ static ssize_t _fimp_buffer_valid(fimp_t *ipc, uint8_t *buf, size_t size)
         if (!isfimp(buf, size))
                 return -EPROTO;
 
-        ipc->magic = FIMP_MAGIC;
+        fip->magic = FIMP_MAGIC;
         off += sizeof(uint32_t);
 
-        ipc->version = ntohs(*(uint16_t *) (buf + off));
+        fip->version = ntohs(*(uint16_t *) (buf + off));
         off += sizeof(uint16_t);
 
-        ipc->flags = ntohl(*(uint32_t *) (buf + off));
+        fip->flags = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        ipc->type = ntohl(*(uint32_t *) (buf + off));
+        fip->type = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        ipc->crc32 = ntohl(*(uint32_t *) (buf + off));
+        fip->crc32 = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        ipc->tlv = ntohl(*(uint32_t *) (buf + off));
+        fip->tlv = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
-        if (ipc->tlv > MAX_TLV)
+        if (fip->tlv > MAX_TLV)
                 return -EMSGSIZE;
 
-        if (ipc->tlv > (size - off))
+        if (fip->tlv > (size - off))
                 return -ENODATA;
 
         return FIMP_STRUCT_SIZE;
@@ -71,18 +71,18 @@ int isack(uint8_t *buf, size_t size)
         return _fimp_magic(buf, size) == ACK_MAGIC;
 }
 
-void fimp_header_serialize(fimp_t *ipc, uint32_t len)
+void fimp_header_serialize(fimp_t *fip, uint32_t len)
 {
-        ipc->magic = htonl(FIMP_MAGIC);
-        ipc->version = htons(FIMP_VERSION);
-        ipc->flags = htonl(0);
-        ipc->type = htonl(0);
-        ipc->crc32 = htonl(0);
-        ipc->tlv = htonl(len);
+        fip->magic = htonl(FIMP_MAGIC);
+        fip->version = htons(FIMP_VERSION);
+        fip->flags = htonl(0);
+        fip->type = htonl(0);
+        fip->crc32 = htonl(0);
+        fip->tlv = htonl(len);
 }
 
 ssize_t fimp_packet_deserialize(struct buffer *rb,
-                                fimp_t *ipc,
+                                fimp_t *fip,
                                 char *tlv,
                                 size_t size)
 {
@@ -91,16 +91,16 @@ ssize_t fimp_packet_deserialize(struct buffer *rb,
 
         buf = buffer_peek_rcur(rb);
 
-        r = _fimp_buffer_valid(ipc, buf, buffer_readable(rb));
+        r = _fimp_buffer_valid(fip, buf, buffer_readable(rb));
 
         if (r > 0) {
-                if (size < ipc->tlv + 1)
+                if (size < fip->tlv + 1)
                         return -ENOBUFS;
 
-                memcpy(tlv, buf + r, ipc->tlv);
-                tlv[ipc->tlv] = '\0';
+                memcpy(tlv, buf + r, fip->tlv);
+                tlv[fip->tlv] = '\0';
 
-                return buffer_skip_rpos(rb, r + ipc->tlv);
+                return buffer_skip_rpos(rb, r + fip->tlv);
         }
 
         switch (r) {

@@ -45,9 +45,9 @@ static ssize_t _ack_serialize_and_process(struct buffer *rb)
         return ack_packet_deserialize(rb, &ack);
 }
 
-static int _fimp_check_auth(struct connection *conn, fimp_t *ipc, char *tlv)
+static int _fimp_check_auth(struct connection *conn, fimp_t *fip, char *tlv)
 {
-        if (ipc->type != FIMP_AUTHORIZE)
+        if (fip->type != FIMP_AUTHORIZE)
                 return -EINVAL;
 
         log_info("jwt: %s\n", tlv);
@@ -59,7 +59,7 @@ static int _fimp_check_auth(struct connection *conn, fimp_t *ipc, char *tlv)
 static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
-        fimp_t ipc;
+        fimp_t fip;
         uint64_t mid;
         char tlv[MAX_WB];
         struct buffer *rb = conn->rb;
@@ -69,20 +69,20 @@ static ssize_t serialize_and_process(struct connection *conn)
         if (r == 0)
                 return 0;
 
-        r = fimp_packet_deserialize(rb, &ipc, tlv, sizeof(tlv));
+        r = fimp_packet_deserialize(rb, &fip, tlv, sizeof(tlv));
 
         if (r < 0)
                 return r;
 
         if (!conn->is_auth)
-                return _fimp_check_auth(conn, &ipc, tlv);
+                return _fimp_check_auth(conn, &fip, tlv);
 
         r = fimp_extract_and_valid(tlv, &mid);
 
         if (r != 0)
                 return -EINVAL;
 
-        log_info("ipc recv body %s\n", tlv);
+        log_info("fip recv body %s\n", tlv);
 
         return r;
 }

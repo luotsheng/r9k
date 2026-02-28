@@ -43,9 +43,9 @@ typedef struct {
 int isfimp(uint8_t *buf, size_t size);
 int isack(uint8_t *buf, size_t size);
 
-void fimp_header_serialize(fimp_t *ipc, uint32_t len);
+void fimp_header_serialize(fimp_t *fip, uint32_t len);
 ssize_t fimp_packet_deserialize(struct buffer *rb,
-                                fimp_t *ipc,
+                                fimp_t *fip,
                                 char *tlv,
                                 size_t size);
 int fimp_extract_and_valid(char *payload, uint64_t *mid);
