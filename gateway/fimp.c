@@ -173,7 +173,7 @@ ssize_t ack_packet_deserialize(struct buffer *rb, ack_t *dst)
 
         size_t off = 0;
 
-        dst->magic = ntohl(* (uint32_t *) buf + off);
+        dst->magic = ntohl(*(uint32_t *) buf + off);
         off += sizeof(uint32_t);
 
         dst->version = ntohs(*(uint16_t *) (buf + off));
