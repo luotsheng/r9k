@@ -13,7 +13,7 @@
 #include "io/socket.h"
 #include "io/evlp.h"
 #include "utils/log.h"
-#include "ipc.h"
+#include "fimp.h"
 #include "config.h"
 
 extern void client_start(void);
@@ -42,14 +42,26 @@ static evlp_t *_init(struct evlp_create_info *p_info)
 static ssize_t _ack_serialize_and_process(struct buffer *rb)
 {
         ack_t ack;
-        return ack_proto_deserialize(rb, &ack);
+        return ack_packet_deserialize(rb, &ack);
+}
+
+static int _fimp_check_auth(struct connection *conn, fimp_t *ipc, char *tlv)
+{
+        if (ipc->type != FIMP_AUTHORIZE)
+                return -EINVAL;
+
+        log_info("jwt: %s\n", tlv);
+        conn->is_auth = 1;
+
+        return 0;
 }
 
 static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
+        fimp_t ipc;
         uint64_t mid;
-        char stack_buf[MAX_WB];
+        char tlv[MAX_WB];
         struct buffer *rb = conn->rb;
 
         r = _ack_serialize_and_process(rb);
@@ -57,14 +69,20 @@ static ssize_t serialize_and_process(struct connection *conn)
         if (r == 0)
                 return 0;
 
-        r = ipc_proto_deserialize(rb, stack_buf, sizeof(stack_buf));
+        r = fimp_packet_deserialize(rb, &ipc, tlv, sizeof(tlv));
 
-        if (r > 0) {
-                r = ipc_extract_and_valid(stack_buf, &mid);
-                if (r != 0)
-                        return -EINVAL;
-                log_info("ipc recv body %s\n", stack_buf);
-        }
+        if (r < 0)
+                return r;
+
+        if (!conn->is_auth)
+                return _fimp_check_auth(conn, &ipc, tlv);
+
+        r = fimp_extract_and_valid(tlv, &mid);
+
+        if (r != 0)
+                return -EINVAL;
+
+        log_info("ipc recv body %s\n", tlv);
 
         return r;
 }

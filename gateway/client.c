@@ -12,7 +12,7 @@
 #include "io/socket.h"
 #include "config.h"
 #include "utils/log.h"
-#include "ipc.h"
+#include "fimp.h"
 
 static size_t off = 0;
 static char buf[64 * 1024];
@@ -22,7 +22,7 @@ int fds[MAX_FDS];
 
 static void writebuf(const char *message)
 {
-        ipc_t ipc;
+        fimp_t ipc;
         int n;
         char body[32 * 1024];
 
@@ -37,15 +37,15 @@ static void writebuf(const char *message)
                                            "\"msg_content"
                                            "\":\"%s\""
                                          "}", message);
-        ipc_header_serialize(&ipc, n);
+        fimp_header_serialize(&ipc, n);
 
-        memcpy(buf + off, &ipc, sizeof(ipc_t));
-        off += sizeof(ipc_t);
+        memcpy(buf + off, &ipc, sizeof(fimp_t));
+        off += sizeof(fimp_t);
 
         memcpy(buf + off, body, n);
         off += n;
 
-        printf("%lu\n", n + sizeof(ipc_t));
+        printf("%lu\n", n + sizeof(fimp_t));
 }
 
 void client_start()
@@ -80,7 +80,7 @@ void client_start()
                         continue;
 
                 ack_t ack;
-                ack_header_serialize(&ack, 0, ACK_FLAG_HEARTBEAT);
+                ack_header_serialize(&ack, 0, ACK_HEARTBEAT);
                 send(fd, &ack, sizeof(ack_t), 0);
 
                 writebuf(line);

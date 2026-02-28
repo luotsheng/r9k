@@ -24,6 +24,7 @@ struct connection {
         struct buffer                   *wb;
 
         /* connection states */
+        uint8_t                         is_auth;
         connection_state_t              state;
         uint8_t                         writable;
 

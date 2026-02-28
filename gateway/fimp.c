@@ -2,7 +2,7 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (conn) 2025
  */
-#include "ipc.h"
+#include "fimp.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@
 #include "utils/endian.h"
 
 __attr_always_inline
-static inline uint32_t _ipc_magic(uint8_t *buf, size_t size)
+static inline uint32_t _fimp_magic(uint8_t *buf, size_t size)
 {
         if (size < sizeof(uint32_t))
                 return 0;
@@ -24,17 +24,17 @@ static inline uint32_t _ipc_magic(uint8_t *buf, size_t size)
         return ntohl(*(uint32_t *) buf);
 }
 
-static ssize_t _ipc_buffer_valid(ipc_t *ipc, uint8_t *buf, size_t size)
+static ssize_t _fimp_buffer_valid(fimp_t *ipc, uint8_t *buf, size_t size)
 {
-        if (size < IPC_STRUCT_SIZE)
+        if (size < FIMP_STRUCT_SIZE)
                 return -ENODATA;
 
         ssize_t off = 0;
 
-        if (!isipc(buf, size))
+        if (!isfimp(buf, size))
                 return -EPROTO;
 
-        ipc->magic = IPC_MAGIC;
+        ipc->magic = FIMP_MAGIC;
         off += sizeof(uint32_t);
 
         ipc->version = ntohs(*(uint16_t *) (buf + off));
@@ -58,64 +58,66 @@ static ssize_t _ipc_buffer_valid(ipc_t *ipc, uint8_t *buf, size_t size)
         if (ipc->tlv > (size - off))
                 return -ENODATA;
 
-        return IPC_STRUCT_SIZE;
+        return FIMP_STRUCT_SIZE;
 }
 
-int isipc(uint8_t *buf, size_t size)
+int isfimp(uint8_t *buf, size_t size)
 {
-        return _ipc_magic(buf, size) == IPC_MAGIC;
+        return _fimp_magic(buf, size) == FIMP_MAGIC;
 }
 
 int isack(uint8_t *buf, size_t size)
 {
-        return _ipc_magic(buf, size) == ACK_MAGIC;
+        return _fimp_magic(buf, size) == ACK_MAGIC;
 }
 
-void ipc_header_serialize(ipc_t *ipc, uint32_t len)
+void fimp_header_serialize(fimp_t *ipc, uint32_t len)
 {
-        ipc->magic = htonl(IPC_MAGIC);
-        ipc->version = htons(IPC_VERSION);
+        ipc->magic = htonl(FIMP_MAGIC);
+        ipc->version = htons(FIMP_VERSION);
         ipc->flags = htonl(0);
         ipc->type = htonl(0);
         ipc->crc32 = htonl(0);
         ipc->tlv = htonl(len);
 }
 
-ssize_t ipc_proto_deserialize(struct buffer *rb, char *dst, size_t size)
+ssize_t fimp_packet_deserialize(struct buffer *rb,
+                                fimp_t *ipc,
+                                char *tlv,
+                                size_t size)
 {
-        ipc_t ipc;
         uint8_t *buf;
         ssize_t r;
 
         buf = buffer_peek_rcur(rb);
 
-        r = _ipc_buffer_valid(&ipc, buf, buffer_readable(rb));
+        r = _fimp_buffer_valid(ipc, buf, buffer_readable(rb));
 
         if (r > 0) {
-                if (size < ipc.tlv + 1)
+                if (size < ipc->tlv + 1)
                         return -ENOBUFS;
 
-                memcpy(dst, buf + r, ipc.tlv);
-                dst[ipc.tlv] = '\0';
+                memcpy(tlv, buf + r, ipc->tlv);
+                tlv[ipc->tlv] = '\0';
 
-                return buffer_skip_rpos(rb, r + ipc.tlv);
+                return buffer_skip_rpos(rb, r + ipc->tlv);
         }
 
         switch (r) {
                 case -EPROTO:
-                        log_error("invalid protocol data, parse ipc_t failed\n");
+                        log_error("invalid protocol data, parse fimp_t failed\n");
                         return r;
                 case -ENODATA:
                         return r;
                 case -EMSGSIZE:
                         return r;
                 default:
-                        log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);
+                        log_error("unknown fimp_unpack_buffer() return errno: %ld\n", r);
                         return r;
         }
 }
 
-int ipc_extract_and_valid(char *payload, uint64_t *mid)
+int fimp_extract_and_valid(char *payload, uint64_t *mid)
 {
         yyjson_doc *doc;
         yyjson_val *root;
@@ -162,7 +164,7 @@ void ack_header_serialize(ack_t *ack, uint64_t mid, uint32_t flags)
         ack->mid = htonll(mid);
 }
 
-ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst)
+ssize_t ack_packet_deserialize(struct buffer *rb, ack_t *dst)
 {
         uint8_t *buf = buffer_peek_rcur(rb);
 
