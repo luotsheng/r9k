@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025
+ * Copyright (C) 2025
  */
 #ifndef BUFFER_H_
 #define BUFFER_H_

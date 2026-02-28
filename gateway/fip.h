@@ -1,9 +1,9 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (conn) 2025
+ * Copyright (C) 2025
  */
-#ifndef FIMP_H_
-#define FIMP_H_
+#ifndef FIP_H_
+#define FIP_H_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -11,16 +11,16 @@
 
 #include "io/buffer.h"
 
-#define FIMP_MAGIC       0xBADF00
+#define FIP_MAGIC       0xBADF00
 #define ACK_MAGIC       0xBADF01
 
-#define FIMP_VERSION     1
+#define FIP_VERSION     1
 #define ACK_VERSION     1
 
-#define FIMP_AUTHORIZE   1
-#define FIMP_MESSAGE     2
+#define FIP_AUTHORIZE   1000
+#define FIP_MESSAGE     1001
 
-#define ACK_HEARTBEAT   0x00001
+#define ACK_HEARTBEAT   2000
 
 typedef struct {
         uint32_t magic;     // +4 魔数
@@ -29,9 +29,9 @@ typedef struct {
         uint32_t type;      // +4 类型
         uint32_t crc32;     // +4 crc32
         uint32_t tlv;       // +4 消息体长度
-} __attribute__((__packed__)) fimp_t;
+} __attribute__((__packed__)) fip_t;
 
-#define FIMP_STRUCT_SIZE (sizeof(fimp_t))
+#define FIP_STRUCT_SIZE (sizeof(fip_t))
 
 typedef struct {
         uint32_t magic;     // +4 魔数
@@ -40,17 +40,17 @@ typedef struct {
         uint64_t mid;       // +8 消息ID
 } __attribute__((__packed__)) ack_t;
 
-int isfimp(uint8_t *buf, size_t size);
+int isfip(uint8_t *buf, size_t size);
 int isack(uint8_t *buf, size_t size);
 
-void fimp_header_serialize(fimp_t *fip, uint32_t len);
-ssize_t fimp_packet_deserialize(struct buffer *rb,
-                                fimp_t *fip,
-                                char *tlv,
-                                size_t size);
-int fimp_extract_and_valid(char *payload, uint64_t *mid);
+void fip_header_serialize(fip_t *fip, uint32_t type, uint32_t len);
+ssize_t fip_packet_deserialize(struct buffer *rb,
+                               fip_t *fip,
+                               char *tlv,
+                               size_t size);
+int fip_extract_and_valid(char *payload, uint64_t *mid);
 
 void ack_header_serialize(ack_t *ack, uint64_t mid, uint32_t flags);
 ssize_t ack_packet_deserialize(struct buffer *rb, ack_t *dst);
 
-#endif /* FIMP_H_ */
+#endif /* FIP_H_ */

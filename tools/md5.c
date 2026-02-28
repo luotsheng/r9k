@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025
+ * Copyright (C) 2025
  */
 #include <r9k/ssl/md5.h>
 #include <stdint.h>

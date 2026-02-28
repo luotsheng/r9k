@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025
+ * Copyright (C) 2025
  */
 #ifndef SOCKET_H_
 #define SOCKET_H_

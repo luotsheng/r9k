@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 Varketh Nockrath
+ * Copyright (C) 2025 Varketh Nockrath
  */
 #include <stdio.h>
 #include <unistd.h>
@@ -12,7 +12,7 @@
 #include "io/socket.h"
 #include "config.h"
 #include "utils/log.h"
-#include "fimp.h"
+#include "fip.h"
 
 static size_t off = 0;
 static char buf[64 * 1024];
@@ -22,7 +22,7 @@ int fds[MAX_FDS];
 
 static void writebuf(const char *message)
 {
-        fimp_t fip;
+        fip_t fip;
         int n;
         char body[32 * 1024];
 
@@ -37,15 +37,15 @@ static void writebuf(const char *message)
                                            "\"msg_content"
                                            "\":\"%s\""
                                          "}", message);
-        fimp_header_serialize(&fip, n);
+        fip_header_serialize(&fip, FIP_MESSAGE, n);
 
-        memcpy(buf + off, &fip, sizeof(fimp_t));
-        off += sizeof(fimp_t);
+        memcpy(buf + off, &fip, sizeof(fip_t));
+        off += sizeof(fip_t);
 
         memcpy(buf + off, body, n);
         off += n;
 
-        printf("%lu\n", n + sizeof(fimp_t));
+        printf("%lu\n", n + sizeof(fip_t));
 }
 
 void client_start()

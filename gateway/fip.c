@@ -1,8 +1,8 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (conn) 2025
+ * Copyright (C) 2025
  */
-#include "fimp.h"
+#include "fip.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@
 #include "utils/endian.h"
 
 __attr_always_inline
-static inline uint32_t _fimp_magic(uint8_t *buf, size_t size)
+static inline uint32_t _fip_magic(uint8_t *buf, size_t size)
 {
         if (size < sizeof(uint32_t))
                 return 0;
@@ -24,17 +24,17 @@ static inline uint32_t _fimp_magic(uint8_t *buf, size_t size)
         return ntohl(*(uint32_t *) buf);
 }
 
-static ssize_t _fimp_buffer_valid(fimp_t *fip, uint8_t *buf, size_t size)
+static ssize_t _fip_buffer_valid(fip_t *fip, uint8_t *buf, size_t size)
 {
-        if (size < FIMP_STRUCT_SIZE)
+        if (size < FIP_STRUCT_SIZE)
                 return -ENODATA;
 
         ssize_t off = 0;
 
-        if (!isfimp(buf, size))
+        if (!isfip(buf, size))
                 return -EPROTO;
 
-        fip->magic = FIMP_MAGIC;
+        fip->magic = FIP_MAGIC;
         off += sizeof(uint32_t);
 
         fip->version = ntohs(*(uint16_t *) (buf + off));
@@ -58,40 +58,40 @@ static ssize_t _fimp_buffer_valid(fimp_t *fip, uint8_t *buf, size_t size)
         if (fip->tlv > (size - off))
                 return -ENODATA;
 
-        return FIMP_STRUCT_SIZE;
+        return FIP_STRUCT_SIZE;
 }
 
-int isfimp(uint8_t *buf, size_t size)
+int isfip(uint8_t *buf, size_t size)
 {
-        return _fimp_magic(buf, size) == FIMP_MAGIC;
+        return _fip_magic(buf, size) == FIP_MAGIC;
 }
 
 int isack(uint8_t *buf, size_t size)
 {
-        return _fimp_magic(buf, size) == ACK_MAGIC;
+        return _fip_magic(buf, size) == ACK_MAGIC;
 }
 
-void fimp_header_serialize(fimp_t *fip, uint32_t len)
+void fip_header_serialize(fip_t *fip, uint32_t type, uint32_t len)
 {
-        fip->magic = htonl(FIMP_MAGIC);
-        fip->version = htons(FIMP_VERSION);
+        fip->magic = htonl(FIP_MAGIC);
+        fip->version = htons(FIP_VERSION);
         fip->flags = htonl(0);
-        fip->type = htonl(0);
+        fip->type = htonl(type);
         fip->crc32 = htonl(0);
         fip->tlv = htonl(len);
 }
 
-ssize_t fimp_packet_deserialize(struct buffer *rb,
-                                fimp_t *fip,
-                                char *tlv,
-                                size_t size)
+ssize_t fip_packet_deserialize(struct buffer *rb,
+                               fip_t *fip,
+                               char *tlv,
+                               size_t size)
 {
         uint8_t *buf;
         ssize_t r;
 
         buf = buffer_peek_rcur(rb);
 
-        r = _fimp_buffer_valid(fip, buf, buffer_readable(rb));
+        r = _fip_buffer_valid(fip, buf, buffer_readable(rb));
 
         if (r > 0) {
                 if (size < fip->tlv + 1)
@@ -105,19 +105,19 @@ ssize_t fimp_packet_deserialize(struct buffer *rb,
 
         switch (r) {
                 case -EPROTO:
-                        log_error("invalid protocol data, parse fimp_t failed\n");
+                        log_error("invalid protocol data, parse fip_t failed\n");
                         return r;
                 case -ENODATA:
                         return r;
                 case -EMSGSIZE:
                         return r;
                 default:
-                        log_error("unknown fimp_unpack_buffer() return errno: %ld\n", r);
+                        log_error("unknown fip_unpack_buffer() return errno: %ld\n", r);
                         return r;
         }
 }
 
-int fimp_extract_and_valid(char *payload, uint64_t *mid)
+int fip_extract_and_valid(char *payload, uint64_t *mid)
 {
         yyjson_doc *doc;
         yyjson_val *root;

@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (conn) 2025
+ * Copyright (C) 2025
  */
 #include "hashtable.h"
 

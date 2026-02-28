@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (conn) 2025
+ * Copyright (C) 2025
  */
 #ifndef _HASHTABLE_H_
 #define _HASHTABLE_H_

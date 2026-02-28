@@ -1,19 +1,17 @@
 /*
  * SPDX-License-Identifier: MIT
- * Copyright (c) 2025
+ * Copyright (C) 2025
  */
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/epoll.h>
 #include <r9k/compiler_attrs.h>
-#include <r9k/yyjson.h>
-
 #include "io/connection.h"
 #include "io/socket.h"
 #include "io/evlp.h"
 #include "utils/log.h"
-#include "fimp.h"
+#include "fip.h"
 #include "config.h"
 
 extern void client_start(void);
@@ -45,9 +43,9 @@ static ssize_t _ack_serialize_and_process(struct buffer *rb)
         return ack_packet_deserialize(rb, &ack);
 }
 
-static int _fimp_check_auth(struct connection *conn, fimp_t *fip, char *tlv)
+static int _fip_recv_auth(struct connection *conn, fip_t *fip, char *tlv)
 {
-        if (fip->type != FIMP_AUTHORIZE)
+        if (fip->type != FIP_AUTHORIZE)
                 return -EINVAL;
 
         log_info("jwt: %s\n", tlv);
@@ -56,11 +54,27 @@ static int _fimp_check_auth(struct connection *conn, fimp_t *fip, char *tlv)
         return 0;
 }
 
+static int _fip_recv_message(struct connection *conn, fip_t *fip, char *tlv)
+{
+        __attr_ignore2(conn, fip);
+
+        int r;
+        uint64_t mid;
+
+        r = fip_extract_and_valid(tlv, &mid);
+
+        if (r != 0)
+                return -EINVAL;
+
+        log_info("fip recv tlv: %s\n", tlv);
+
+        return r;
+}
+
 static ssize_t serialize_and_process(struct connection *conn)
 {
         ssize_t r;
-        fimp_t fip;
-        uint64_t mid;
+        fip_t fip;
         char tlv[MAX_WB];
         struct buffer *rb = conn->rb;
 
@@ -69,22 +83,24 @@ static ssize_t serialize_and_process(struct connection *conn)
         if (r == 0)
                 return 0;
 
-        r = fimp_packet_deserialize(rb, &fip, tlv, sizeof(tlv));
+        /* parse fimp packet */
+        r = fip_packet_deserialize(rb, &fip, tlv, sizeof(tlv));
 
         if (r < 0)
                 return r;
 
-        if (!conn->is_auth)
-                return _fimp_check_auth(conn, &fip, tlv);
+        if (!conn->is_auth && fip.type != FIP_AUTHORIZE)
+                return -EPROTO;
 
-        r = fimp_extract_and_valid(tlv, &mid);
-
-        if (r != 0)
-                return -EINVAL;
-
-        log_info("fip recv body %s\n", tlv);
-
-        return r;
+        switch (fip.type) {
+                case FIP_AUTHORIZE:
+                        return _fip_recv_auth(conn, &fip, tlv);
+                case FIP_MESSAGE:
+                        return _fip_recv_message(conn, &fip, tlv);
+                default:
+                        log_error("fip unknown proto packet type: %u\n", fip.type);
+                        return -EPROTOTYPE;
+        }
 }
 
 static void on_event_accept(evlp_t *evlp, struct connection *conn)

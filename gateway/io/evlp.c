@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (conn) 2025
+ * Copyright (C) 2025
  */
 #define CONNECTION_EXTERN_FUNC
 #include "evlp.h"

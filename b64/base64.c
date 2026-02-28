@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 Varketh Nockrath
+ * Copyright (C) 2025 Varketh Nockrath
  */
 #include "base64.h"
 
