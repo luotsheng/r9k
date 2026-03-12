@@ -32,6 +32,10 @@ struct evlp {
         on_read_fn_t            on_read;
         on_write_fn_t           on_write;
 
+        /* timer */
+        uint64_t                *timer_conn_arr;
+        size_t                  timer_conn_cap;
+
         /* EMFILE / resource exhaustion handling */
         int                     emfile_guard_fd;
         uint32_t                emfile_conn_cnt;    /* conn count when EMFILE hit */
@@ -101,6 +105,7 @@ static int _evlp_add_listen_sock(evlp_t *evlp, int listen_fd)
                 .events = EPOLLIN,
                 .data.fd = evlp->listen_fd,
         };
+
         if (epoll_ctl(evlp->epfd, EPOLL_CTL_ADD, evlp->listen_fd, &tev) < 0) {
                 log_error("epoll_ctl add listen_fd failed, cause: %s\n", syserr);
                 return -1;
@@ -111,14 +116,46 @@ static int _evlp_add_listen_sock(evlp_t *evlp, int listen_fd)
 
 static void _evlp_on_timer(evlp_t *evlp)
 {
+        ssize_t n;
         uint64_t _expired_count;
-        read(evlp->timer_fd, &_expired_count, sizeof(_expired_count));
+
+        while (1) {
+                n = read(evlp->timer_fd, &_expired_count, sizeof(_expired_count));
+
+                if (n == 0) {
+                        log_error("timerfd closed, error: %s\n", syserr);
+                        return;
+                }
+
+                /* skip */
+                if (n < 0) {
+                        if (is_eagain())
+                                continue;
+                        return;
+                }
+
+                break;
+        }
 
         if (HASHTABLE_IS_EMPTY(evlp->actives))
                 return;
 
         time_t now = time(NULL);
-        uint64_t arr[HASHTABLE_SIZE(evlp->actives)];
+        size_t htsize = HASHTABLE_SIZE(evlp->actives);
+
+        if (evlp->timer_conn_cap < htsize) {
+                size_t new_size = htsize * sizeof(uint64_t);
+                uint64_t *new_arr = realloc(evlp->timer_conn_arr, new_size);
+                if (!new_arr) {
+                        log_error("timer active realloc failed, size=%zu, skip cause: %s\n", new_size, syserr);
+                        return;
+                }
+
+                evlp->timer_conn_arr = new_arr;
+                evlp->timer_conn_cap = htsize;
+        }
+
+        uint64_t *arr = evlp->timer_conn_arr;
         size_t arrsize = 0;
 
         struct hashtable_iter iter;
