@@ -370,6 +370,9 @@ void evlp_destroy(evlp_t *evlp)
         close(evlp->timer_fd);
         close(evlp->listen_fd);
 
+        if (evlp->timer_conn_arr)
+                free(evlp->timer_conn_arr);
+
         struct hashtable_iter iter;
         hashtable_iter_init(&iter, evlp->actives);
 
